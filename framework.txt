@@ -22,3 +22,5 @@ Output:
 
 Step 4: Database
 - Store article summation of corraborative articles in database
+
+This is a test sentence.
