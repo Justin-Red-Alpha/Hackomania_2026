@@ -75,85 +75,85 @@ tests/
 Priority is given to Singapore-specific sources. Source trustworthiness weighting in `judgement.py` should reflect this ordering.
 
 ### Singapore-Specific (Highest Priority)
-| Source | URL |
-|---|---|
-| CNA | https://www.channelnewsasia.com |
-| The Straits Times | https://www.straitstimes.com |
-| Data.gov.sg | https://www.data.gov.sg |
-| MAS | https://www.mas.gov.sg |
-| MOH | https://www.moh.gov.sg |
-| Factually | https://www.factually.gov.sg/ |
-| POFMA | https://www.pofmaoffice.gov.sg/ |
+| Source            | URL                             |
+| ----------------- | ------------------------------- |
+| CNA               | https://www.channelnewsasia.com |
+| The Straits Times | https://www.straitstimes.com    |
+| Data.gov.sg       | https://www.data.gov.sg         |
+| MAS               | https://www.mas.gov.sg          |
+| MOH               | https://www.moh.gov.sg          |
+| Factually         | https://www.factually.gov.sg/   |
+| POFMA             | https://www.pofmaoffice.gov.sg/ |
 
 ### General News
-| Source | URL |
-|---|---|
-| Reuters | https://www.reuters.com |
-| Associated Press | https://www.apnews.com |
-| BBC News | https://www.bbc.com/news |
-| NPR | https://www.npr.org |
+| Source           | URL                      |
+| ---------------- | ------------------------ |
+| Reuters          | https://www.reuters.com  |
+| Associated Press | https://www.apnews.com   |
+| BBC News         | https://www.bbc.com/news |
+| NPR              | https://www.npr.org      |
 
 ### Politics & Government / Fact-Checkers
-| Source | URL |
-|---|---|
-| PolitiFact | https://www.politifact.com |
-| FactCheck.org | https://www.factcheck.org |
-| Snopes | https://www.snopes.com |
-| Ballotpedia | https://www.ballotpedia.org |
+| Source        | URL                         |
+| ------------- | --------------------------- |
+| PolitiFact    | https://www.politifact.com  |
+| FactCheck.org | https://www.factcheck.org   |
+| Snopes        | https://www.snopes.com      |
+| Ballotpedia   | https://www.ballotpedia.org |
 
 ### Finance & Economics
-| Source | URL |
-|---|---|
-| Bloomberg | https://www.bloomberg.com |
-| Financial Times | https://www.ft.com |
-| Wall Street Journal | https://www.wsj.com |
-| IMF | https://www.imf.org |
-| World Bank | https://www.worldbank.org |
-| Federal Reserve | https://www.federalreserve.gov |
+| Source              | URL                            |
+| ------------------- | ------------------------------ |
+| Bloomberg           | https://www.bloomberg.com      |
+| Financial Times     | https://www.ft.com             |
+| Wall Street Journal | https://www.wsj.com            |
+| IMF                 | https://www.imf.org            |
+| World Bank          | https://www.worldbank.org      |
+| Federal Reserve     | https://www.federalreserve.gov |
 
 ### Science & Health
-| Source | URL |
-|---|---|
-| WHO | https://www.who.int |
-| CDC | https://www.cdc.gov |
-| NIH | https://www.nih.gov |
-| Nature | https://www.nature.com |
-| PubMed | https://pubmed.ncbi.nlm.nih.gov |
-| The Lancet | https://www.thelancet.com |
+| Source     | URL                             |
+| ---------- | ------------------------------- |
+| WHO        | https://www.who.int             |
+| CDC        | https://www.cdc.gov             |
+| NIH        | https://www.nih.gov             |
+| Nature     | https://www.nature.com          |
+| PubMed     | https://pubmed.ncbi.nlm.nih.gov |
+| The Lancet | https://www.thelancet.com       |
 
 ### Statistics & Data
-| Source | URL |
-|---|---|
-| Our World in Data | https://www.ourworldindata.org |
-| Statista | https://www.statista.com |
-| UN Data | https://data.un.org |
-| World Bank Open Data | https://data.worldbank.org |
-| Pew Research Center | https://www.pewresearch.org |
+| Source               | URL                            |
+| -------------------- | ------------------------------ |
+| Our World in Data    | https://www.ourworldindata.org |
+| Statista             | https://www.statista.com       |
+| UN Data              | https://data.un.org            |
+| World Bank Open Data | https://data.worldbank.org     |
+| Pew Research Center  | https://www.pewresearch.org    |
 
 ### Technology
-| Source | URL |
-|---|---|
+| Source                | URL                              |
+| --------------------- | -------------------------------- |
 | MIT Technology Review | https://www.technologyreview.com |
-| Wired | https://www.wired.com |
-| TechCrunch | https://www.techcrunch.com |
-| IEEE | https://www.ieee.org |
+| Wired                 | https://www.wired.com            |
+| TechCrunch            | https://www.techcrunch.com       |
+| IEEE                  | https://www.ieee.org             |
 
 ### Sports
-| Source | URL |
-|---|---|
-| ESPN | https://www.espn.com |
-| BBC Sport | https://www.bbc.com/sport |
+| Source     | URL                       |
+| ---------- | ------------------------- |
+| ESPN       | https://www.espn.com      |
+| BBC Sport  | https://www.bbc.com/sport |
 | Sky Sports | https://www.skysports.com |
-| FIFA | https://www.fifa.com |
-| NBA | https://www.nba.com |
-| UEFA | https://www.uefa.com |
+| FIFA       | https://www.fifa.com      |
+| NBA        | https://www.nba.com       |
+| UEFA       | https://www.uefa.com      |
 
 ### Environment & Climate
-| Source | URL |
-|---|---|
-| IPCC | https://www.ipcc.ch |
-| NOAA | https://www.noaa.gov |
-| NASA Climate | https://climate.nasa.gov |
+| Source       | URL                         |
+| ------------ | --------------------------- |
+| IPCC         | https://www.ipcc.ch         |
+| NOAA         | https://www.noaa.gov        |
+| NASA Climate | https://climate.nasa.gov    |
 | Carbon Brief | https://www.carbonbrief.org |
 
 
@@ -167,72 +167,72 @@ Priority is given to Singapore-specific sources. Source trustworthiness weightin
 
 ### Input (`POST /api/v1/analyse`)
 
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `articleUrl` | string (URI) | REQ | — | URL of the news article to check |
-| `anthropicApiKey` | string (secret) | REQ | — | Claude API key |
-| `tavilyApiKey` | string (secret) | REQ | — | Tavily API key for search + extraction |
-| `tavilySearchDepth` | enum | OPT | `advanced` | `basic` = faster, `advanced` = thorough |
-| `tavilyMaxResults` | integer | OPT | `5` | Max search results per claim |
-| `prioritiseLocalSources` | boolean | OPT | `false` | Prioritise country-specific sources |
-| `country` | string | OPT | — | e.g. `Singapore`, `USA` |
-| `minimumSourcesPerClaim` | integer | OPT | `2` | Min independent sources required per claim |
-| `excludeGovernmentSourcesOnly` | boolean | OPT | `true` | Flag verdicts backed only by govt sources |
+| Field                          | Type            | Required | Default    | Description                                |
+| ------------------------------ | --------------- | -------- | ---------- | ------------------------------------------ |
+| `articleUrl`                   | string (URI)    | REQ      | —          | URL of the news article to check           |
+| `anthropicApiKey`              | string (secret) | REQ      | —          | Claude API key                             |
+| `tavilyApiKey`                 | string (secret) | REQ      | —          | Tavily API key for search + extraction     |
+| `tavilySearchDepth`            | enum            | OPT      | `advanced` | `basic` = faster, `advanced` = thorough    |
+| `tavilyMaxResults`             | integer         | OPT      | `5`        | Max search results per claim               |
+| `prioritiseLocalSources`       | boolean         | OPT      | `false`    | Prioritise country-specific sources        |
+| `country`                      | string          | OPT      | —          | e.g. `Singapore`, `USA`                    |
+| `minimumSourcesPerClaim`       | integer         | OPT      | `2`        | Min independent sources required per claim |
+| `excludeGovernmentSourcesOnly` | boolean         | OPT      | `true`     | Flag verdicts backed only by govt sources  |
 
 ### Processing Pipeline
 
-| Step | Tool | Action |
-|---|---|---|
-| 1 | `tavily-extract` | Scrape & clean article text |
-| 2 | Claude | Read article & identify claims |
-| 3 | `tavily-search` | Search for sources per claim |
-| 4 | `tavily-extract` | Pull full content from source pages |
-| 5 | Claude | Analyse, score & generate output |
+| Step | Tool             | Action                              |
+| ---- | ---------------- | ----------------------------------- |
+| 1    | `tavily-extract` | Scrape & clean article text         |
+| 2    | Claude           | Read article & identify claims      |
+| 3    | `tavily-search`  | Search for sources per claim        |
+| 4    | `tavily-extract` | Pull full content from source pages |
+| 5    | Claude           | Analyse, score & generate output    |
 
 ### Output Schema
 
 **`article`** — Article Metadata *(extracted by `tavily-extract`)*
-| Field | Type |
-|---|---|
-| `url` | string |
-| `title` | string |
-| `publisher` | string |
-| `date` | date |
-| `author` | string |
-| `section` | string |
+| Field        | Type    |
+| ------------ | ------- |
+| `url`        | string  |
+| `title`      | string  |
+| `publisher`  | string  |
+| `date`       | date    |
+| `author`     | string  |
+| `section`    | string  |
 | `is_opinion` | boolean |
 
 **`publisher_credibility`** — Publisher Credibility Score *(post-check)*
-| Field | Type | Notes |
-|---|---|---|
-| `score` | integer 0–100 | |
-| `rating` | enum | `highly_credible` → `not_credible` |
-| `summary` | string | |
-| `bias` | enum | `far_left` → `far_right` |
-| `known_issues[]` | array | |
-| `fact_checker_ratings[]` | array | |
+| Field                    | Type          | Notes                              |
+| ------------------------ | ------------- | ---------------------------------- |
+| `score`                  | integer 0–100 |                                    |
+| `rating`                 | enum          | `highly_credible` → `not_credible` |
+| `summary`                | string        |                                    |
+| `bias`                   | enum          | `far_left` → `far_right`           |
+| `known_issues[]`         | array         |                                    |
+| `fact_checker_ratings[]` | array         |                                    |
 
 **`article_credibility`** — Article Accuracy Score *(post-check)*
-| Field | Type | Notes |
-|---|---|---|
-| `score` | integer 0–100 | |
-| `rating` | enum | `credible` → `false` |
-| `summary` | string | |
-| `total_claims_found` | integer | |
-| `claims_true / false / etc` | integer | |
-| `government_source_only_flag` | boolean | |
-| `writing_quality{}` | object | sensationalism, named sources, etc. |
+| Field                         | Type          | Notes                               |
+| ----------------------------- | ------------- | ----------------------------------- |
+| `score`                       | integer 0–100 |                                     |
+| `rating`                      | enum          | `credible` → `false`                |
+| `summary`                     | string        |                                     |
+| `total_claims_found`          | integer       |                                     |
+| `claims_true / false / etc`   | integer       |                                     |
+| `government_source_only_flag` | boolean       |                                     |
+| `writing_quality{}`           | object        | sensationalism, named sources, etc. |
 
 **`claims[]`** — Individual Claim Breakdown *(post-check)*
-| Field | Type | Notes |
-|---|---|---|
-| `claim_id` | integer | |
-| `claim_summary` | string | |
-| `extract` | string | Direct quote from article |
-| `verdict` | enum | `true` → `false` |
-| `reason` | string | |
-| `government_source_only` | boolean | |
-| `sources[]` | array | name, url, type, is_independent |
+| Field                    | Type    | Notes                           |
+| ------------------------ | ------- | ------------------------------- |
+| `claim_id`               | integer |                                 |
+| `claim_summary`          | string  |                                 |
+| `extract`                | string  | Direct quote from article       |
+| `verdict`                | enum    | `true` → `false`                |
+| `reason`                 | string  |                                 |
+| `government_source_only` | boolean |                                 |
+| `sources[]`              | array   | name, url, type, is_independent |
 
 ## Key Conventions
 
