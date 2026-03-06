@@ -32,7 +32,7 @@
 ## Input Contract
 
 Receives `IngestionResult` from the Ingestion module (defined in `app/models/schemas.py`):
-- `article` - metadata (url, publisher, author, date, etc.)
+- `content` - metadata (url, publisher, author, date, etc.)
 - `text` - cleaned English article text
 
 ## Output Contract

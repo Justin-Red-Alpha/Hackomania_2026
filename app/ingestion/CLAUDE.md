@@ -8,29 +8,32 @@
 | Step | File                  | Purpose                                                                   |
 | ---- | --------------------- | ------------------------------------------------------------------------- |
 | 1    | `ingestion_agent.py`  | Accept plain text string or file upload (PDF, HTML, MD, DOCX, RTF, image) |
-| 2    | `extraction_agent.py` | Extract raw text and article metadata; translate to English if needed     |
+| 2    | `extraction_agent.py` | Extract raw text and metadata; upload content to S3; translate if needed  |
 | 3    | `summariser.py`       | Summarise if token count > 4000; otherwise pass through unchanged         |
 
 ## Technology
 
 - `tavily-extract` (Tavily MCP) - scrape and clean article text from URLs
-- Claude `claude-sonnet-4-6` - extract metadata, translate non-English content to English
+- Claude `claude-sonnet-4-6` - extract metadata, detect language, translate to English
+- `aioboto3` - async upload of content files to AWS S3
 
 ## Input
 
 Either a URL string or a direct file upload:
 
-| Format | Parser                         |
-| ------ | ------------------------------ |
-| URL    | `tavily-extract`               |
-| PDF    | `pypdf2` or `pdfminer`         |
-| DOCX   | `python-docx`                  |
-| HTML   | `beautifulsoup4`               |
-| MD     | `markdown` + `beautifulsoup4`  |
-| RTF    | `striprtf`                     |
-| Image  | `Pillow` + `pytesseract` (OCR) |
+| Format     | Parser                         |
+| ---------- | ------------------------------ |
+| URL        | `tavily-extract`               |
+| PDF        | `pypdf2` or `pdfminer`         |
+| DOCX       | `python-docx`                  |
+| HTML       | `beautifulsoup4`               |
+| MD         | `markdown` + `beautifulsoup4`  |
+| RTF        | `striprtf`                     |
+| Image      | `Pillow` + `pytesseract` (OCR) |
+| Plain text | (no parser needed)             |
 
-API keys come from `.env`: `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`
+API keys come from `.env`: `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`, `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `S3_REGION`
 
 ## Output Contract
 
@@ -38,8 +41,22 @@ Produce an `IngestionResult` Pydantic model and add it to `app/models/schemas.py
 This is passed directly to the Investigation module.
 
 ```python
-class ArticleMetadata(BaseModel):
-    url: Optional[str] = None
+from enum import Enum
+
+class InputType(str, Enum):
+    url   = "url"
+    text  = "text"
+    pdf   = "pdf"
+    docx  = "docx"
+    html  = "html"
+    md    = "md"
+    rtf   = "rtf"
+    image = "image"
+
+class ContentMetadata(BaseModel):       # was: ArticleMetadata
+    input_type: InputType               # how the content was provided
+    url: Optional[str] = None           # original URL if input was a URL
+    s3_url: Optional[str] = None        # S3 link to stored content file
     title: Optional[str] = None
     publisher: Optional[str] = None
     date: Optional[date] = None
@@ -48,16 +65,37 @@ class ArticleMetadata(BaseModel):
     is_opinion: bool = False
 
 class IngestionResult(BaseModel):
-    article: ArticleMetadata
-    text: str        # cleaned, extracted, English-language text
-    token_count: int # approximate token count of extracted text
+    content: ContentMetadata            # was: article: ArticleMetadata
+    original_language: str              # BCP-47 language code, e.g. "en", "zh", "ms"
+    original_text: str                  # extracted text in its original language
+    text: str                           # cleaned English-language text (translated if needed)
+    token_count: int                    # approximate token count of `text`
 ```
 
 ## Key Decisions
 
-- For URL input: use `tavily-extract` to scrape and clean the page
-- Translate non-English content to English using Claude before passing downstream
-- Only summarise if `token_count > 4000`; otherwise pass the full text unchanged
+### Input handling
+- For URL input: use `tavily-extract` to scrape; save the raw HTML response to S3
+- For file input: save the original file bytes directly to S3
+- For plain text input: no S3 upload (no file to store; `s3_url` remains `None`)
+- Set `content.s3_url` to the resulting S3 object URL after upload
+
+### S3 naming convention
+```
+s3://<S3_BUCKET_NAME>/content/<YYYY-MM-DD>/<uuid>.<ext>
+```
+Use `.html` for URL-scraped pages, and the original file extension for uploads.
+
+### Language and translation
+- Detect the language of the extracted text using Claude
+- If not English, translate to English and store both:
+  - `original_text` - the text as extracted (original language)
+  - `text` - the English translation
+- If already English, both `original_text` and `text` hold the same value
+
+### Summarisation
+- Only summarise if `token_count > 4000`; otherwise `text` is passed through unchanged
+- `original_text` is never summarised - always the full extracted original
 - The `article.is_opinion` flag should be inferred from section/metadata where possible
 
 ## Commands

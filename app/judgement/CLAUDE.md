@@ -46,7 +46,7 @@ class ArticleCredibility(BaseModel):
     writing_quality: WritingQuality
 
 class JudgementResult(BaseModel):
-    article: ArticleMetadata           # from IngestionResult
+    content: ContentMetadata           # from IngestionResult
     publisher_credibility: PublisherCredibility  # from InvestigationResult
     article_credibility: ArticleCredibility
     claims: List[Claim]                # from InvestigationResult

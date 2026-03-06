@@ -34,7 +34,7 @@
 
 Returns `JudgementResult` (defined in `app/models/schemas.py`):
 
-**`article`** - Article Metadata
+**`content`** - Content Metadata
 
 | Field        | Type    |
 | ------------ | ------- |
