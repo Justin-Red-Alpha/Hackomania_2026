@@ -1,7 +1,7 @@
 import sys
 import urllib.request
 import urllib.error
-import ai_client
+import justin_article_summarizer.ai_client as ai_client
 
 
 # ── Config ─────────────────────────────────────────────────
