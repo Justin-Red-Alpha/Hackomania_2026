@@ -5,19 +5,20 @@
 
 ## Your Scope
 
-| File                  | Purpose                                                        |
-| --------------------- | -------------------------------------------------------------- |
-| `investigator.py`     | Identify claims; orchestrate agents via `asyncio.gather`       |
-| `search_agent.py`     | Search for corroborating/contradicting sources (tavily-search) |
-| `fakeness_agent.py`   | Detect AI-generated content likelihood                         |
-| `statistics_agent.py` | Verify cited data/statistics against authoritative sources     |
-| `source_checker.py`   | Check author/publisher credibility and timestamp plausibility  |
+| File                  | Purpose                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `investigator.py`     | Identify claims; orchestrate agents via `asyncio.gather`      |
+| `search_agent.py`     | Search for sources; extract full content; archive HTML to S3  |
+| `fakeness_agent.py`   | Detect AI-generated content likelihood                        |
+| `statistics_agent.py` | Verify cited data/statistics against authoritative sources    |
+| `source_checker.py`   | Check author/publisher credibility and timestamp plausibility |
 
 ## Technology
 
 - Claude `claude-sonnet-4-6` - identify claims in text, evaluate source evidence
 - `tavily-search` (Tavily MCP) - find sources per claim
 - `tavily-extract` (Tavily MCP) - pull full content from source pages
+- `aioboto3` - async upload of source HTML pages to AWS S3
 
 ## Tavily Configuration (from `.env`)
 
@@ -32,7 +33,7 @@
 ## Input Contract
 
 Receives `IngestionResult` from the Ingestion module (defined in `app/models/schemas.py`):
-- `content` - metadata (url, publisher, author, date, etc.)
+- `article` - metadata (url, publisher, author, date, etc.)
 - `text` - cleaned English article text
 
 ## Output Contract
@@ -43,13 +44,15 @@ Produce an `InvestigationResult` Pydantic model and add it to `app/models/schema
 class Source(BaseModel):
     name: str
     url: str
-    type: str             # e.g. "news", "government", "academic"
+    source_type: str              # e.g. "news", "government", "academic"
     is_independent: bool
+    s3_url: Optional[str] = None  # S3 link to archived HTML copy of source page
+    extracted_text: Optional[str] = None  # full text extracted from source page
 
 class Claim(BaseModel):
     claim_id: int
     claim_summary: str
-    extract: str          # direct quote from the article
+    extract: str          # direct quote of the claim or statement from the article
     verdict: Literal["true", "likely_true", "unverified", "likely_false", "false"]
     reason: str
     government_source_only: bool

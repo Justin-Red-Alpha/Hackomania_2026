@@ -5,45 +5,45 @@
 
 ## Your Scope
 
-| File    | Purpose                                                          |
-| ------- | ---------------------------------------------------------------- |
-| `db.py` | Async read/write for content metadata, analysis results, sources |
+| File    | Purpose                                                     |
+| ------- | ----------------------------------------------------------- |
+| `db.py` | Async read/write for content, analysis results, and sources |
 
 ## Technology
 
 - `aiosqlite` / `asyncpg` - async database driver
-- `aioboto3` - async AWS S3 client (for reading S3 links; uploads are done by the Ingestion team)
+- `aioboto3` - async AWS S3 client (for reading S3 links; uploads are done by each respective team)
 
 ## Purpose
 
-- **Write:** Persist content metadata and completed analysis results so future requests for
+- **Write:** Persist ingested content and completed analysis results so future requests for
   the same URL skip the full pipeline
 - **Read:** Check if a URL was already analysed; return the cached result if available
 
 ## Required Functions
 
-| Function                        | Signature                                  | Description                            |
-| ------------------------------- | ------------------------------------------ | -------------------------------------- |
-| `get_content_metadata(url)`     | `async (str) -> Optional[ContentMetadata]` | Return stored content metadata or None |
-| `save_content_metadata(result)` | `async (IngestionResult) -> None`          | Persist content metadata + both texts  |
-| `get_analysis(url)`             | `async (str) -> Optional[JudgementResult]` | Return cached analysis or None         |
-| `save_analysis(result)`         | `async (JudgementResult) -> None`          | Persist a completed analysis           |
-| `get_sources(url)`              | `async (str) -> List[Source]`              | Return known sources for a URL         |
-| `save_sources(url, sources)`    | `async (str, List[Source]) -> None`        | Persist corroborative sources          |
+| Function                  | Signature                                  | Description                          |
+| ------------------------- | ------------------------------------------ | ------------------------------------ |
+| `get_content(url)`        | `async (str) -> Optional[ContentMetadata]` | Return stored content record or None |
+| `save_content(result)`    | `async (IngestionResult) -> None`          | Persist content record + both texts  |
+| `get_analysis(url)`       | `async (str) -> Optional[JudgementResult]` | Return cached analysis or None       |
+| `save_analysis(result)`   | `async (JudgementResult) -> None`          | Persist a completed analysis         |
+| `get_sources(url)`        | `async (str) -> List[Source]`              | Return known sources for a URL       |
+| `save_sources(url, srcs)` | `async (str, List[Source]) -> None`        | Persist corroborative sources        |
 
 ## Database Schema
 
-### Table: `content_metadata`
+### Table: `content`
 
-Stores ingestion results. Primary lookup key is the original URL (or a generated ID for
-non-URL inputs).
+Stores ingested content and metadata. Primary lookup key is the original URL (or a generated
+UUID for non-URL inputs such as file uploads or plain text).
 
 | Column              | Type      | Description                                                      |
 | ------------------- | --------- | ---------------------------------------------------------------- |
-| `id`                | string PK | UUID; used as lookup key for non-URL inputs                      |
+| `id`                | string PK | UUID; primary lookup key                                         |
 | `input_type`        | string    | Enum: `url`, `text`, `pdf`, `docx`, `html`, `md`, `rtf`, `image` |
 | `source_url`        | string    | Original URL if input was a URL, else NULL                       |
-| `s3_url`            | string    | S3 object URL of stored content file (NULL for plain text)       |
+| `s3_url`            | string    | S3 object URL of stored content file (NULL for plain text input) |
 | `title`             | string    | Extracted article title                                          |
 | `publisher`         | string    | Extracted publisher name                                         |
 | `author`            | string    | Extracted author name                                            |
@@ -57,28 +57,42 @@ non-URL inputs).
 
 ### Table: `analysis`
 
-Stores completed judgement results, linked to `content_metadata`.
+Stores completed judgement results, linked to `content`.
 
 | Column        | Type      | Description                               |
 | ------------- | --------- | ----------------------------------------- |
 | `id`          | string PK | UUID                                      |
-| `content_id`  | string FK | References `content_metadata.id`          |
+| `content_id`  | string FK | References `content.id`                   |
 | `source_url`  | string    | Denormalised URL for fast lookup          |
 | `analysis`    | JSON      | Full `JudgementResult` serialised as JSON |
 | `analysed_at` | timestamp | When the analysis was completed           |
 
 ### Table: `sources`
 
-Stores corroborative sources found during investigation.
+Stores corroborative sources found during investigation, including their full extracted
+content and an S3-hosted HTML copy for archival.
 
-| Column           | Type      | Description                            |
-| ---------------- | --------- | -------------------------------------- |
-| `id`             | string PK | UUID                                   |
-| `content_id`     | string FK | References `content_metadata.id`       |
-| `name`           | string    | Source publication name                |
-| `url`            | string    | Source article URL                     |
-| `type`           | string    | Source type: `news`, `government`, etc |
-| `is_independent` | boolean   | Whether source is independent          |
+| Column           | Type      | Description                                                  |
+| ---------------- | --------- | ------------------------------------------------------------ |
+| `id`             | string PK | UUID                                                         |
+| `content_id`     | string FK | References `content.id`                                      |
+| `claim_id`       | integer   | The claim this source supports or contradicts                |
+| `name`           | string    | Source publication name                                      |
+| `url`            | string    | Source article URL                                           |
+| `source_type`    | string    | Source type: `news`, `government`, `academic`, etc           |
+| `is_independent` | boolean   | Whether source is independent of the original publisher      |
+| `s3_url`         | string    | S3 object URL of the archived HTML copy of the source page   |
+| `extracted_text` | text      | Full text extracted from the source page by `tavily-extract` |
+
+### S3 Naming Convention for Sources
+
+Source HTML archives follow the same convention as ingested content:
+
+```
+s3://<S3_BUCKET_NAME>/sources/<YYYY-MM-DD>/<uuid>.html
+```
+
+Uploading is performed by `search_agent.py` (Investigation team); this table records the link.
 
 ## Key Conventions
 
@@ -88,8 +102,9 @@ Stores corroborative sources found during investigation.
 - Default: `DATABASE_URL=sqlite+aiosqlite:///./analysis.db`
 - S3 credentials from `.env`: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`
 - Models from `app/models/schemas.py` are used for serialisation/deserialisation
-- `save_content_metadata` is called by the Ingestion pipeline immediately after extraction
+- `save_content` is called by the Ingestion pipeline immediately after extraction
 - `save_analysis` is called by the Judgement pipeline after scoring is complete
+- `save_sources` is called by the Investigation pipeline after all agents complete
 
 ## Commands
 
