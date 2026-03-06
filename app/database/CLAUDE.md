@@ -84,6 +84,21 @@ content and an S3-hosted HTML copy for archival.
 | `s3_url`         | string    | S3 object URL of the archived HTML copy of the source page   |
 | `extracted_text` | text      | Full text extracted from the source page by `tavily-extract` |
 
+### Table: `evidence`
+
+Stores the specific evidence snippets identified by the judgement agent that link
+individual claims to the source text that supports or contradicts them.
+
+| Column             | Type      | Description                                               |
+| ------------------ | --------- | --------------------------------------------------------- |
+| `id`               | string PK | UUID                                                      |
+| `content_id`       | string FK | References `content.id`                                   |
+| `claim_id`         | integer   | Matches `JudgedClaim.claim_id`                            |
+| `source_id`        | string FK | References `sources.id`                                   |
+| `snippet`          | text      | Verbatim excerpt from `sources.extracted_text`            |
+| `supports_claim`   | boolean   | True = snippet supports the claim; False = contradicts it |
+| `judgement_reason` | text      | Explanation of how this snippet affects the claim verdict |
+
 ### S3 Naming Convention for Sources
 
 Source HTML archives follow the same convention as ingested content:

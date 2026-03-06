@@ -57,7 +57,7 @@ Returns `JudgementResult` (defined in `app/models/schemas.py`):
 | `known_issues[]`         | array         |                                     |
 | `fact_checker_ratings[]` | array         |                                     |
 
-**`article_credibility`** - Article Accuracy Score
+**`content_credibility`** - Content Credibility Score
 
 | Field                         | Type          | Notes                               |
 | ----------------------------- | ------------- | ----------------------------------- |
@@ -69,17 +69,29 @@ Returns `JudgementResult` (defined in `app/models/schemas.py`):
 | `government_source_only_flag` | boolean       |                                     |
 | `writing_quality{}`           | object        | sensationalism, named sources, etc. |
 
-**`claims[]`** - Individual Claim Breakdown
+**`claims[]`** - Individual Claim Breakdown (`JudgedClaim`)
 
-| Field                    | Type    | Notes                           |
-| ------------------------ | ------- | ------------------------------- |
-| `claim_id`               | integer |                                 |
-| `claim_summary`          | string  |                                 |
-| `extract`                | string  | Direct quote from article       |
-| `verdict`                | enum    | `true` to `false`               |
-| `reason`                 | string  |                                 |
-| `government_source_only` | boolean |                                 |
-| `sources[]`              | array   | name, url, type, is_independent |
+| Field                    | Type    | Notes                                                         |
+| ------------------------ | ------- | ------------------------------------------------------------- |
+| `claim_id`               | integer |                                                               |
+| `claim_summary`          | string  |                                                               |
+| `extract`                | string  | Direct quote from the article being fact-checked              |
+| `verdict`                | enum    | `true` to `false`                                             |
+| `overall_reason`         | string  | Consolidated reasoning across all evidence                    |
+| `government_source_only` | boolean |                                                               |
+| `sources[]`              | array   | Full source records (name, url, type, s3_url, extracted_text) |
+| `evidence[]`             | array   | Curated evidence snippets (see below)                         |
+
+**`claims[].evidence[]`** - Per-source evidence snippet (`ClaimEvidence`)
+
+| Field              | Type    | Notes                                                  |
+| ------------------ | ------- | ------------------------------------------------------ |
+| `source_id`        | string  | UUID matching the corresponding source record          |
+| `source_name`      | string  | Denormalised source name                               |
+| `source_url`       | string  | Denormalised source URL                                |
+| `snippet`          | string  | Verbatim excerpt from source that relates to the claim |
+| `supports_claim`   | boolean | True = supports; False = contradicts                   |
+| `judgement_reason` | string  | Why this snippet affects the claim verdict             |
 
 ## Shared Schemas (`app/models/schemas.py`)
 
