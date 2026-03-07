@@ -21,6 +21,9 @@ pytesseract>=0.3.13
 # Cloud storage
 aioboto3>=13.0.0
 
+# Database
+aiosqlite>=0.20.0
+
 # Data validation
 pydantic>=2.0.0
 

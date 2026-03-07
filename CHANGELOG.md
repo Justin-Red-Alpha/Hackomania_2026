@@ -5,6 +5,22 @@ Format: `YYYY-MM-DD | Author | Description`
 
 ---
 
+## 2026-03-07 | Database team | Database layer implementation
+
+- Implemented `app/database/db.py` (Step 6) with all required async functions:
+  - `init_db()` - creates `content`, `analysis`, `sources`, and `evidence` tables via aiosqlite
+  - `get_content(url)` / `save_content(result)` - cache and retrieve ingested content records
+  - `get_analysis(url)` / `save_analysis(result)` - cache and retrieve full `JudgementResult`; also
+    writes `evidence` rows linking claims to source snippets
+  - `get_sources(url)` / `save_sources(url, srcs)` - cache and retrieve corroborative sources
+- Added `app/database/__init__.py` package init
+- Added `aiosqlite>=0.20.0` to `requirements.txt`
+- Extended `app/models/schemas.py` with all missing Pydantic models:
+  - `Source`, `Claim`, `PublisherCredibility`, `InvestigationResult` (Investigation Step 4)
+  - `WritingQuality`, `ContentCredibility`, `ClaimEvidence`, `JudgedClaim`, `JudgementResult` (Judgement Step 5)
+- Added `tests/test_database.py` covering init, content CRUD, sources CRUD, analysis CRUD,
+  upsert behaviour, most-recent-analysis ordering, and evidence row persistence
+
 ## 2026-03-07 | Justin | Ingestion pipeline implementation
 
 - Implemented ingestion pipeline Steps 1-3:
