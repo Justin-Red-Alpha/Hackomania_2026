@@ -139,10 +139,11 @@ async function submitUrl() {
   try { new URL(url); } catch {
     throw new Error('Please enter a valid URL (must start with https:// or http://).');
   }
+  const noCache = document.getElementById('no-cache-checkbox')?.checked ?? false;
   return callApi('/api/v1/analyse', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ articleUrl: url }),
+    body: JSON.stringify({ articleUrl: url, noCache }),
   });
 }
 
