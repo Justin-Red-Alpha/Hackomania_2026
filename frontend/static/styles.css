@@ -810,6 +810,7 @@ main {
 
 .modal-evidence-item.ev-support    { border-left: 4px solid var(--green); }
 .modal-evidence-item.ev-contradict { border-left: 4px solid var(--red); }
+.modal-evidence-item.ev-neutral    { border-left: 4px solid var(--text-muted); }
 
 .modal-evidence-header {
   display: flex;
@@ -1081,6 +1082,7 @@ main {
 
 .evidence-item.ev-support    { border-left: 3px solid var(--green); }
 .evidence-item.ev-contradict { border-left: 3px solid var(--red); }
+.evidence-item.ev-neutral    { border-left: 3px solid var(--text-muted); }
 
 .evidence-header {
   display: flex;
@@ -1103,6 +1105,7 @@ main {
 
 .ev-support    .evidence-badge { background: rgba(63,185,80,0.15);  color: var(--green); }
 .ev-contradict .evidence-badge { background: rgba(248,81,73,0.15);  color: var(--red); }
+.ev-neutral    .evidence-badge { background: rgba(139,148,158,0.15); color: var(--text-muted); }
 
 .evidence-source {
   color: var(--accent);

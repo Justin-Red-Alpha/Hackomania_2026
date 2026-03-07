@@ -472,15 +472,19 @@ function buildClaimHTML(claim, i) {
 function buildEvidenceHTML(evidence) {
   if (!evidence.length) return '';
   const rows = evidence.map(e => {
-    const supportCls  = e.supports_claim ? 'ev-support' : 'ev-contradict';
-    const supportIcon = e.supports_claim
-      ? '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
-      : '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    const relevant = e.is_relevant !== false;
+    const supportCls  = !relevant ? 'ev-neutral' : e.supports_claim ? 'ev-support' : 'ev-contradict';
+    const supportIcon = !relevant
+      ? '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+      : e.supports_claim
+        ? '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    const supportLabel = !relevant ? 'Inconclusive' : e.supports_claim ? 'Supports' : 'Contradicts';
 
     return `
       <div class="evidence-item ${supportCls}">
         <div class="evidence-header">
-          <span class="evidence-badge">${supportIcon} ${e.supports_claim ? 'Supports' : 'Contradicts'}</span>
+          <span class="evidence-badge">${supportIcon} ${supportLabel}</span>
           <a href="${esc(e.source_url || '#')}" target="_blank" rel="noopener" class="evidence-source">${esc(e.source_name || e.source_url || 'Source')}</a>
         </div>
         ${e.snippet ? `<blockquote class="evidence-snippet">${esc(e.snippet)}</blockquote>` : ''}
@@ -558,14 +562,18 @@ window.showClaimModal = function(i) {
 
   const evidenceHTML = evidence.length
     ? evidence.map(e => {
-        const cls  = e.supports_claim ? 'ev-support' : 'ev-contradict';
-        const icon = e.supports_claim
-          ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
-          : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        const relevant = e.is_relevant !== false;
+        const cls  = !relevant ? 'ev-neutral' : e.supports_claim ? 'ev-support' : 'ev-contradict';
+        const icon = !relevant
+          ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+          : e.supports_claim
+            ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+            : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        const label = !relevant ? 'Inconclusive' : e.supports_claim ? 'Supports' : 'Contradicts';
         return `
           <div class="modal-evidence-item ${cls}">
             <div class="modal-evidence-header">
-              <span class="evidence-badge ${cls}">${icon} ${e.supports_claim ? 'Supports' : 'Contradicts'}</span>
+              <span class="evidence-badge ${cls}">${icon} ${label}</span>
               <a class="modal-source-link" href="${esc(e.source_url || '#')}" target="_blank" rel="noopener">
                 ${esc(e.source_name || e.source_url || 'Source')}
               </a>

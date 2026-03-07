@@ -91,8 +91,9 @@ Returns `JudgementResult` (defined in `app/models/schemas.py`):
 | `source_name`      | string  | Denormalised source name                               |
 | `source_url`       | string  | Denormalised source URL                                |
 | `snippet`          | string  | Verbatim excerpt from source that relates to the claim |
-| `supports_claim`   | boolean | True = supports; False = contradicts                   |
-| `judgement_reason` | string  | Why this snippet affects the claim verdict             |
+| `is_relevant`      | boolean | False when source cannot confirm or deny the claim (unreadable, wrong time period, metadata-only). Display as "Inconclusive" rather than "Supports"/"Contradicts". |
+| `supports_claim`   | boolean | True = supports; False = contradicts. Only meaningful when `is_relevant=true`. |
+| `judgement_reason` | string  | Why this snippet affects the claim verdict, or why the source is not relevant |
 
 ## Shared Schemas (`app/models/schemas.py`)
 
