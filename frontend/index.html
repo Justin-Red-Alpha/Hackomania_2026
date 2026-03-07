@@ -15,7 +15,7 @@
         <span class="logo-icon">&#9906;</span>
         <span class="logo-text">FactGuard</span>
       </div>
-      <p class="tagline">AI-powered misinformation detection</p>
+      <p class="tagline">Is this news real?</p>
     </div>
   </header>
 
@@ -24,7 +24,7 @@
 
     <!-- ── Submission Form ── -->
     <section class="card" id="form-section">
-      <h2 class="card-title">Analyse an Article</h2>
+      <h2 class="card-title">Check an Article</h2>
 
       <form id="analyse-form" novalidate>
 
@@ -32,33 +32,32 @@
         <div class="input-tabs" role="tablist">
           <button type="button" class="tab-btn active" role="tab" aria-selected="true"  data-tab="url">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            URL
+            Website Link
           </button>
           <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="file">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            File Upload
+            Upload File
           </button>
           <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="text">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-            Plain Text
+            Paste Text
           </button>
         </div>
 
         <!-- URL tab -->
         <div class="tab-panel" id="tab-url">
           <div class="field">
-            <label for="articleUrl">Article URL <span class="req">*</span></label>
+            <label for="articleUrl">Website Link <span class="req">*</span></label>
             <input type="url" id="articleUrl" name="articleUrl"
-                   placeholder="https://example.com/news/article"
+                   placeholder="https://..."
                    autocomplete="off" />
-            <span class="field-hint">Paste the full URL of the news article to fact-check.</span>
           </div>
         </div>
 
         <!-- File tab -->
         <div class="tab-panel" id="tab-file" hidden>
           <div class="field">
-            <label>Article File <span class="req">*</span></label>
+            <label>Upload File <span class="req">*</span></label>
             <div class="file-drop-zone" id="file-drop-zone">
               <input type="file" id="articleFile" name="articleFile"
                      accept=".pdf,.html,.htm,.md,.docx,.rtf,image/*"
@@ -67,8 +66,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="upload-icon">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                <p>Drop a file here or <span class="file-browse">browse</span></p>
-                <p class="field-hint">PDF, HTML, MD, DOCX, RTF, or image</p>
+                <p>Tap to choose a file</p>
+                <p class="field-hint">PDF, Word, or image</p>
               </div>
               <div class="file-selected" id="file-selected" hidden>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="file-ok-icon">
@@ -84,21 +83,20 @@
         <!-- Text tab -->
         <div class="tab-panel" id="tab-text" hidden>
           <div class="field">
-            <label for="articleText">Article Text <span class="req">*</span></label>
+            <label for="articleText">Paste Article <span class="req">*</span></label>
             <textarea id="articleText" name="articleText" rows="10"
-                      placeholder="Paste the full article text here…"></textarea>
-            <span class="field-hint">Paste the raw article content. No URL needed.</span>
+                      placeholder="Paste the article text here…"></textarea>
           </div>
         </div>
 
         <div class="form-actions" style="margin-top:1.25rem">
           <button type="submit" class="btn-primary" id="submit-btn">
-            <span class="btn-label">Analyse Article</span>
+            <span class="btn-label">Check Now</span>
             <span class="btn-spinner" hidden>
               <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
               </svg>
-              Analysing… (10–30 s)
+              Checking… please wait
             </span>
           </button>
         </div>
@@ -117,22 +115,22 @@
     <section class="pipeline-steps" id="pipeline-steps" hidden>
       <div class="step" id="step-extract">
         <div class="step-dot"></div>
-        <span>Extracting article</span>
+        <span>Reading</span>
       </div>
       <div class="step-line"></div>
       <div class="step" id="step-claims">
         <div class="step-dot"></div>
-        <span>Identifying claims</span>
+        <span>Checking facts</span>
       </div>
       <div class="step-line"></div>
       <div class="step" id="step-search">
         <div class="step-dot"></div>
-        <span>Searching sources</span>
+        <span>Finding sources</span>
       </div>
       <div class="step-line"></div>
       <div class="step" id="step-judge">
         <div class="step-dot"></div>
-        <span>Judging credibility</span>
+        <span>Scoring</span>
       </div>
     </section>
 
@@ -150,7 +148,7 @@
 
         <!-- Degree of Fakeness gauge -->
         <div class="card score-card" id="fakeness-card">
-          <h3 class="card-title">Degree of Fakeness</h3>
+          <h3 class="card-title">Fake Score</h3>
           <div class="gauge-wrap">
             <svg class="gauge" viewBox="0 0 200 120">
               <path class="gauge-bg" d="M20,110 A90,90 0 0,1 180,110" fill="none" stroke-width="18" stroke-linecap="round"/>
@@ -164,13 +162,13 @@
 
         <!-- Content credibility -->
         <div class="card score-card" id="content-cred-card">
-          <h3 class="card-title">Content Credibility</h3>
+          <h3 class="card-title">Content Score</h3>
           <div id="content-cred-content" class="cred-content"></div>
         </div>
 
         <!-- Publisher credibility -->
         <div class="card score-card" id="publisher-cred-card">
-          <h3 class="card-title">Publisher Credibility</h3>
+          <h3 class="card-title">Publisher Score</h3>
           <div id="publisher-cred-content" class="cred-content"></div>
         </div>
 
@@ -179,7 +177,7 @@
       <!-- Claims -->
       <div class="card" id="claims-card">
         <h2 class="card-title">
-          Claim Breakdown
+          Fact Checks
           <span class="claims-summary" id="claims-summary"></span>
         </h2>
         <div id="claims-list" class="claims-list"></div>
@@ -191,7 +189,7 @@
 
   <footer class="site-footer">
     <div class="container">
-      Built for Hackomania 2026 &mdash; powered by Claude &amp; Tavily
+      Powered by Claude &amp; Tavily
     </div>
   </footer>
 
