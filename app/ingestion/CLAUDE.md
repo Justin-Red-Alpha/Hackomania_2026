@@ -63,10 +63,10 @@ class ContentMetadata(BaseModel):       # was: ArticleMetadata
     author: Optional[str] = None
     section: Optional[str] = None
     is_opinion: bool = False
+    original_language: str = "en"       # BCP-47 language code, e.g. "en", "zh", "ms"
 
 class IngestionResult(BaseModel):
     content: ContentMetadata            # was: article: ArticleMetadata
-    original_language: str              # BCP-47 language code, e.g. "en", "zh", "ms"
     original_text: str                  # extracted text in its original language
     text: str                           # cleaned English-language text (translated if needed)
     token_count: int                    # approximate token count of `text`
@@ -88,6 +88,7 @@ Use `.html` for URL-scraped pages and the original file extension for uploads.
 
 ### Language and translation
 - Detect the language of the extracted text using Claude
+- Store the detected language in `content.original_language` (BCP-47 code)
 - If not English, translate to English and store both:
   - `original_text` - the text as extracted (original language)
   - `text` - the English translation

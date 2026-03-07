@@ -7,6 +7,10 @@ Format: `YYYY-MM-DD | Author | Description`
 
 ## 2026-03-07
 
+- Moved `original_language` from `IngestionResult` into `ContentMetadata`; field now lives
+  on the content object where it belongs (aligns with the `content` DB table column).
+  Default value is `"en"`. Frontend `content` response schema updated to include `original_language`.
+
 - Added `General Directives` section to `CLAUDE.md`: no emojis, regular commits, SSE streaming,
   verbose logging, and CHANGELOG maintenance.
 - Added `evidence` table to database schema (`app/database/CLAUDE.md`).

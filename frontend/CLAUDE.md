@@ -45,6 +45,7 @@ Returns `JudgementResult` (defined in `app/models/schemas.py`):
 | `author`     | string  |
 | `section`    | string  |
 | `is_opinion` | boolean |
+| `original_language` | string  | BCP-47 language code, e.g. `en`, `zh` |
 
 **`publisher_credibility`** - Publisher Credibility Score
 
