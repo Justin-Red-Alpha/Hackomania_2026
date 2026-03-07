@@ -1,10 +1,30 @@
-﻿# CHANGELOG
+# CHANGELOG
 
 All significant changes to this project must be recorded here.
 Format: `YYYY-MM-DD | Author | Description`
 
 ---
 
+## 2026-03-07 | Claude | Investigation module implementation
+
+- Implemented `app/investigation/` module (Step 4) with all five files:
+  - `investigator.py`: orchestrates the pipeline -- extracts up to 10 verifiable claims from the
+    article using Claude, then runs all four sub-agents concurrently via `asyncio.gather`; merges
+    statistics agent verdicts (domain authority for numerical claims) into search-enriched claims
+  - `search_agent.py`: bounded citation-chasing loop -- searches Tavily per claim (Factually first
+    for Singapore government fact-checks), extracts each URL, classifies sources as `primary` /
+    `secondary_cited` / `mention_only` via Claude, follows `secondary_cited` citations up to
+    `MAX_HOP_DEPTH`, discards `mention_only`; archives kept sources to S3; generates per-claim
+    verdicts from primary source evidence; handles Straits Times paywall (signal only, no extract)
+  - `fakeness_agent.py`: calls GPTZero /v2/predict/text endpoint; maps completely_generated_prob
+    to 0-100 fakeness score; returns 0 gracefully if key is absent or API fails
+  - `statistics_agent.py`: filters claims for verifiable statistics via Claude, searches Tavily
+    for authoritative data sources, produces updated verdict for statistical claims
+  - `source_checker.py`: searches Tavily for publisher credibility info, calls Claude to produce
+    PublisherCredibility (score, rating, bias, known_issues, fact_checker_ratings)
+- Added `app/investigation/__init__.py` package init
+- All agents follow project conventions: load_dotenv(), structured DEBUG logging with stage
+  tags, graceful fallbacks on API failures, config values read from `app/config.py`
 ## 2026-03-07 | Database team | Database layer implementation
 
 - Implemented `app/database/db.py` (Step 6) with all required async functions:
