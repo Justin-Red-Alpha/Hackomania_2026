@@ -106,3 +106,9 @@ tests/
 - Secrets (API keys) are loaded from `.env` via `python-dotenv`.
 - Source trustworthiness weighting lives in `app/config.py`, not hardcoded in agents.
 - All DB functions are `async`.
+
+## General Directives
+
+- **No emojis.** Keep all output, UI, and code comments professional and emoji-free.
+- **Commit and push regularly** to https://github.com/Justin-Red-Alpha/Hackomania_2026.git
+  after each meaningful unit of work.
