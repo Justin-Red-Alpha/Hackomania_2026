@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as Date
 from enum import Enum
 from typing import Optional
 
@@ -24,7 +24,7 @@ class ContentMetadata(BaseModel):
     s3_url: Optional[str] = None
     title: Optional[str] = None
     publisher: Optional[str] = None
-    date: Optional[date] = None
+    date: Optional[Date] = None
     author: Optional[str] = None
     section: Optional[str] = None
     is_opinion: bool = False

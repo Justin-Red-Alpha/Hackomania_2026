@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from io import BytesIO
 from typing import Optional
 
@@ -237,7 +237,7 @@ async def extract(
         english_text = await _translate_to_english(async_client, raw_text)
 
     # Step 4: Parse publication date
-    pub_date: Optional[date] = None
+    pub_date: Optional[Date] = None
     raw_date = meta.get("date")
     if raw_date:
         try:

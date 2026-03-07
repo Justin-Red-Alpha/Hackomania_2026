@@ -184,7 +184,7 @@ async def run_ingestion(
         except Exception:
             logger.warning(
                 "ingestion_agent: S3 upload failed for file, continuing without S3",
-                extra={"stage": "s3_upload", "filename": filename},
+                extra={"stage": "s3_upload", "upload_filename": filename},
                 exc_info=True,
             )
 
