@@ -197,7 +197,6 @@ async def _generate_alt_query(
 
 async def _process_url(
     client: anthropic.AsyncAnthropic,
-    tavily: AsyncTavilyClient,
     claim_summary: str,
     url: str,
     hop_depth: int,
@@ -208,19 +207,21 @@ async def _process_url(
     Returns a list of ClaimSource objects (may include sources found via citation chasing).
     Discards mention-only sources. Archives kept sources to S3 (best-effort).
     """
+    import trafilatura
+
     if hop_depth > cfg.MAX_HOP_DEPTH:
         return []
 
     logger.debug(
         "search_agent: extracting URL",
-        extra={"stage": "tavily_extract", "url": url, "hop_depth": hop_depth},
+        extra={"stage": "trafilatura_extract", "url": url, "hop_depth": hop_depth},
     )
 
     # Straits Times is paywalled - use as credibility signal only, skip extraction
     if "straitstimes.com" in url:
         logger.debug(
             "search_agent: Straits Times URL - skipping extraction (paywalled)",
-            extra={"stage": "tavily_extract", "url": url},
+            extra={"stage": "trafilatura_extract", "url": url},
         )
         return [
             ClaimSource(
@@ -236,21 +237,22 @@ async def _process_url(
             )
         ]
 
-    try:
-        extract_response = await tavily.extract(urls=[url])
-        results = extract_response.get("results", [])
-        if not results:
-            logger.debug(
-                "search_agent: Tavily extract returned no content",
-                extra={"stage": "tavily_extract", "url": url},
-            )
-            return []
-        extracted_text = results[0].get("raw_content", "")
-    except Exception:
-        logger.warning(
-            "search_agent: Tavily extract failed",
-            extra={"stage": "tavily_extract", "url": url},
-            exc_info=True,
+    raw_html: str | None = await asyncio.to_thread(trafilatura.fetch_url, url)
+    if not raw_html:
+        logger.debug(
+            "search_agent: trafilatura could not fetch URL",
+            extra={"stage": "trafilatura_extract", "url": url},
+        )
+        return []
+    extracted_text: str = (
+        await asyncio.to_thread(
+            trafilatura.extract, raw_html, include_comments=False, include_tables=True
+        )
+    ) or ""
+    if not extracted_text:
+        logger.debug(
+            "search_agent: trafilatura extracted no content",
+            extra={"stage": "trafilatura_extract", "url": url},
         )
         return []
 
@@ -301,7 +303,7 @@ async def _process_url(
             },
         )
         cited_sources = await _process_url(
-            client, tavily, claim_summary, cited_url, hop_depth + 1
+            client, claim_summary, cited_url, hop_depth + 1
         )
         sources.extend(cited_sources)
     return sources
@@ -337,7 +339,7 @@ async def _investigate_claim(
                 extra={"stage": "factually_search", "claim_id": claim.claim_id, "count": len(factually_urls)},
             )
             factually_tasks = [
-                _process_url(client, tavily, claim.claim_summary, url, 0)
+                _process_url(client, claim.claim_summary, url, 0)
                 for url in factually_urls
             ]
             for result_list in await asyncio.gather(*factually_tasks):
@@ -374,7 +376,7 @@ async def _investigate_claim(
 
     # Process all URLs in parallel at hop_depth=0
     url_tasks = [
-        _process_url(client, tavily, claim.claim_summary, url, 0)
+        _process_url(client, claim.claim_summary, url, 0)
         for url in result_urls
     ]
     all_sources: list[ClaimSource] = list(factually_sources)
@@ -454,7 +456,7 @@ async def _investigate_claim(
             )
             break
         retry_tasks = [
-            _process_url(client, tavily, claim.claim_summary, url, 0)
+            _process_url(client, claim.claim_summary, url, 0)
             for url in retry_urls
         ]
         for result_list in await asyncio.gather(*retry_tasks):
