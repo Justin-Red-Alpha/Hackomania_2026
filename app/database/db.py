@@ -308,16 +308,6 @@ async def save_analysis(result: JudgementResult) -> None:
     logger.debug("save_analysis: committed analysis_id=%s", analysis_id)
 
 
-async def get_cached_result(url: str) -> Optional[JudgementResult]:
-    """Alias for get_analysis — returns cached JudgementResult for *url* or None."""
-    return await get_analysis(url)
-
-
-async def store_result(url: Optional[str], result: JudgementResult) -> None:
-    """Persist a completed JudgementResult (called by routes.py after judgement)."""
-    await save_analysis(result)
-
-
 async def get_sources(url: str) -> List[ClaimSource]:
     """Return all stored sources for the content identified by *url*."""
     logger.debug("get_sources: url=%s", url)

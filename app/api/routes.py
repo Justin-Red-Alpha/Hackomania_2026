@@ -49,8 +49,8 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
     # ── Step 0: DB cache lookup (URL only — text has no stable cache key) ───
     if article_url:
         try:
-            from app.database.db import get_cached_result
-            cached = await get_cached_result(article_url)
+            from app.database.db import get_analysis
+            cached = await get_analysis(article_url)
             if cached:
                 logger.info("Cache hit for: %s", article_url)
                 return cached
@@ -110,8 +110,8 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
 
     # ── Step 6: Store in DB ─────────────────────────────────────────────────
     try:
-        from app.database.db import store_result
-        await store_result(article_url, result)
+        from app.database.db import save_analysis
+        await save_analysis(article_url, result)
     except ImportError:
         logger.debug("Database module not yet available — skipping store")
     except Exception as exc:
