@@ -5,9 +5,9 @@ Shared Pydantic models for the FactGuard pipeline.
 All teams add their models to this file.
 """
 
-from datetime import date as Date
+from datetime import date
 from enum import Enum
-from typing import List, Literal, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 
@@ -86,7 +86,7 @@ class AnalyseRequest(BaseModel):
         if not self.articleUrl and not self.articleText:
             raise ValueError("Provide either articleUrl or articleText.")
         if self.articleUrl and self.articleText:
-            raise ValueError("Provide only one of articleUrl or articleText, not both.")
+            raise ValueError("Provide only one of articleUrl or articleText.")
         return self
 
 
@@ -102,7 +102,7 @@ class ContentMetadata(BaseModel):
     s3_url:            Optional[str]  = None
     title:             Optional[str]  = None
     publisher:         Optional[str]  = None
-    date:              Optional[Date] = None
+    date:              Optional[date] = None
     author:            Optional[str]  = None
     section:           Optional[str]  = None
     is_opinion:        bool           = False
@@ -111,39 +111,48 @@ class ContentMetadata(BaseModel):
 
 
 class IngestionResult(BaseModel):
-    content:        ContentMetadata
-    original_text:  str
-    text:           str
-    token_count:    int
+    content:       ContentMetadata
+    original_text: str
+    text:          str
+    token_count:   int
+
+
+# ─────────────────────────────────────────────
+# Claim sources  (Step 4a – Investigation team)
+# ─────────────────────────────────────────────
+
+class ClaimSource(BaseModel):
+    """A source article used to evaluate a claim."""
+
+    source_id:         Optional[str]  = None
+    name:              Optional[str]  = None
+    url:               str
+    type:              Optional[str]  = None
+    is_independent:    Optional[bool] = None
+    is_primary_source: bool           = False
+    hop_depth:         int            = 0
+    s3_url:            Optional[str]  = None
+    extracted_text:    Optional[str]  = None
 
 
 # ─────────────────────────────────────────────
 # Investigation models  (Step 4 – Investigation team)
 # ─────────────────────────────────────────────
 
-class Source(BaseModel):
-    name:           str
-    url:            str
-    source_type:    str
-    is_independent: bool
-    s3_url:         Optional[str] = None
-    extracted_text: Optional[str] = None
-
-
 class Claim(BaseModel):
     claim_id:               int
     claim_summary:          str
     extract:                str
-    verdict:                Literal["true", "likely_true", "unverified", "likely_false", "false"]
+    verdict:                ClaimVerdict
     reason:                 str
-    government_source_only: bool
-    sources:                List[Source]
+    government_source_only: bool              = False
+    sources:                List[ClaimSource] = []
 
 
 class InvestigationResult(BaseModel):
     claims:                List[Claim]
     publisher_credibility: "PublisherCredibility"
-    fakeness_score:        int
+    fakeness_score:        int = Field(..., ge=0, le=100)
 
 
 # ─────────────────────────────────────────────
@@ -164,11 +173,11 @@ class PublisherCredibility(BaseModel):
 # ─────────────────────────────────────────────
 
 class WritingQuality(BaseModel):
-    sensationalism:    Optional[bool] = None
-    named_sources:     Optional[bool] = None
-    anonymous_sources: Optional[bool] = None
+    sensationalism:     Optional[bool] = None
+    named_sources:      Optional[bool] = None
+    anonymous_sources:  Optional[bool] = None
     emotional_language: Optional[bool] = None
-    hedging_language:  Optional[bool] = None
+    hedging_language:   Optional[bool] = None
 
 
 class ContentCredibility(BaseModel):
@@ -187,7 +196,7 @@ class ContentCredibility(BaseModel):
 
 
 # ─────────────────────────────────────────────
-# Claim evidence & sources  (Step 4a – Investigation team)
+# Claim evidence  (Step 4a – Investigation team)
 # ─────────────────────────────────────────────
 
 class ClaimEvidence(BaseModel):
@@ -199,18 +208,6 @@ class ClaimEvidence(BaseModel):
     snippet:          str
     supports_claim:   bool
     judgement_reason: Optional[str] = None
-
-
-class ClaimSource(BaseModel):
-    """A source article used to evaluate a claim."""
-
-    source_id:      Optional[str]  = None
-    name:           Optional[str]  = None
-    url:            str
-    type:           Optional[str]  = None
-    is_independent: Optional[bool] = None
-    s3_url:         Optional[str]  = None
-    extracted_text: Optional[str]  = None
 
 
 # ─────────────────────────────────────────────

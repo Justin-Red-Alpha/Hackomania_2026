@@ -22,7 +22,7 @@ from app.models.schemas import (
     IngestionResult,
     InputType,
     JudgementResult,
-    Source,
+    ClaimSource,
 )
 
 load_dotenv()
@@ -302,7 +302,7 @@ async def save_analysis(result: JudgementResult) -> None:
     logger.debug("save_analysis: committed analysis_id=%s", analysis_id)
 
 
-async def get_sources(url: str) -> List[Source]:
+async def get_sources(url: str) -> List[ClaimSource]:
     """Return all stored sources for the content identified by *url*."""
     logger.debug("get_sources: url=%s", url)
     async with _connect() as db:
@@ -319,7 +319,7 @@ async def get_sources(url: str) -> List[Source]:
         rows = await cursor.fetchall()
 
     sources = [
-        Source(
+        ClaimSource(
             name=row[0],
             url=row[1],
             source_type=row[2],
@@ -333,7 +333,7 @@ async def get_sources(url: str) -> List[Source]:
     return sources
 
 
-async def save_sources(url: str, srcs: List[Source]) -> None:
+async def save_sources(url: str, srcs: List[ClaimSource]) -> None:
     """Persist corroborative sources for the content identified by *url*."""
     logger.debug("save_sources: url=%s count=%d", url, len(srcs))
     async with _connect() as db:
