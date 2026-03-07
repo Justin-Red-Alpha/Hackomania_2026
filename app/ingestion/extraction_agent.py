@@ -73,9 +73,6 @@ def _parse_raw_text(raw_content: bytes | str, input_type: InputType) -> str:
         return _parse_md(raw_bytes)
     if input_type == InputType.rtf:
         return _parse_rtf(raw_bytes)
-    if input_type == InputType.image:
-        return _parse_image(raw_bytes)
-
     return raw_bytes.decode("utf-8", errors="replace")
 
 
@@ -119,12 +116,60 @@ def _parse_rtf(data: bytes) -> str:
     return rtf_to_text(data.decode("utf-8", errors="replace"))
 
 
-def _parse_image(data: bytes) -> str:
-    from PIL import Image
-    import pytesseract
+def _detect_image_media_type(data: bytes) -> str:
+    """Detect image MIME type from magic bytes."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:2] == b"\xff\xd8":
+        return "image/jpeg"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/jpeg"  # safe fallback
 
-    image = Image.open(BytesIO(data))
-    return pytesseract.image_to_string(image)
+
+async def _parse_image_with_claude(client: anthropic.AsyncAnthropic, data: bytes) -> str:
+    """Use Claude vision to extract all text from an image."""
+    import base64
+
+    media_type = _detect_image_media_type(data)
+    image_data = base64.standard_b64encode(data).decode("utf-8")
+    logger.debug(
+        "extraction_agent: extracting text from image with Claude vision",
+        extra={"stage": "image_ocr", "media_type": media_type, "bytes": len(data)},
+    )
+    response = await client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=4096,
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": image_data,
+                    },
+                },
+                {
+                    "type": "text",
+                    "text": (
+                        "Extract all text visible in this image verbatim, preserving "
+                        "paragraph breaks. Return only the extracted text with no "
+                        "preamble or explanation."
+                    ),
+                },
+            ],
+        }],
+    )
+    extracted = response.content[0].text.strip()
+    logger.debug(
+        "extraction_agent: Claude vision extraction complete",
+        extra={"stage": "image_ocr", "extracted_length": len(extracted)},
+    )
+    return extracted
 
 
 async def _extract_metadata(client: anthropic.AsyncAnthropic, text: str) -> dict:
@@ -271,15 +316,20 @@ async def extract(
         extra={"stage": "extract", "input_type": input_type.value, "source_url": source_url},
     )
 
+    async_client = anthropic.AsyncAnthropic(api_key=api_key)
+
     # Step 1: Parse raw content to plain text
-    raw_text = _parse_raw_text(raw_content, input_type)
+    if input_type == InputType.image:
+        raw_bytes = raw_content if isinstance(raw_content, bytes) else raw_content.encode("utf-8")
+        raw_text = await _parse_image_with_claude(async_client, raw_bytes)
+    else:
+        raw_text = _parse_raw_text(raw_content, input_type)
     logger.debug(
         "extraction_agent: raw text extracted",
         extra={"stage": "parse", "raw_text_length": len(raw_text)},
     )
 
     # Step 2: Extract metadata and detect language using Claude
-    async_client = anthropic.AsyncAnthropic(api_key=api_key)
     meta = await _extract_metadata(async_client, raw_text)
 
     language = meta.get("language", "en") or "en"
