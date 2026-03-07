@@ -338,7 +338,7 @@ async def get_sources(url: str) -> List[ClaimSource]:
         ClaimSource(
             name=row[0],
             url=row[1],
-            source_type=row[2],
+            type=row[2],
             is_independent=bool(row[3]),
             s3_url=row[4],
             extracted_text=row[5],
@@ -377,8 +377,8 @@ async def save_sources(url: str, srcs: List[ClaimSource]) -> None:
             None,  # claim_id not available via this interface
             src.name,
             src.url,
-            src.source_type,
-            int(src.is_independent),
+            src.type,
+            int(src.is_independent) if src.is_independent is not None else 1,
             src.s3_url,
             src.extracted_text,
         ])
