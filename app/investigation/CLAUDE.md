@@ -19,6 +19,7 @@
 - `tavily-search` (Tavily MCP) - find sources per claim
 - `tavily-extract` (Tavily MCP) - pull full content from source pages
 - `aioboto3` - async upload of source HTML pages to AWS S3
+- **GPTZero API** (`fakeness_agent.py` only) - AI-generated text detection; no Tavily/Claude equivalent. Add `GPTZERO_API_KEY` to `.env`. Endpoint: `https://api.gptzero.me/v2/predict/text`
 
 ## Tavily Configuration (from `.env`)
 
@@ -99,15 +100,24 @@ Priority is given to Singapore-specific sources.
 
 ### Singapore-Specific (Highest Priority)
 
-| Source            | URL                             |
-| ----------------- | ------------------------------- |
-| CNA               | https://www.channelnewsasia.com |
-| The Straits Times | https://www.straitstimes.com    |
-| Data.gov.sg       | https://www.data.gov.sg         |
-| MAS               | https://www.mas.gov.sg          |
-| MOH               | https://www.moh.gov.sg          |
-| Factually         | https://www.factually.gov.sg/   |
-| POFMA             | https://www.pofmaoffice.gov.sg/ |
+| Source              | URL                              | Access method                              |
+| ------------------- | -------------------------------- | ------------------------------------------ |
+| CNA                 | https://www.channelnewsasia.com  | Tavily search/extract; RSS available       |
+| The Straits Times   | https://www.straitstimes.com     | **Paywalled** - snippet/signal only        |
+| Data.gov.sg         | https://www.data.gov.sg          | New REST API (key in .env); Tavily fallback |
+| MAS                 | https://www.mas.gov.sg           | Direct REST API - no Tavily needed         |
+| MOH                 | https://www.moh.gov.sg           | Tavily search/extract on moh.gov.sg        |
+| SingStat            | https://www.singstat.gov.sg      | Tavily search/extract; some datasets via API |
+| Factually           | https://www.factually.gov.sg/    | Tavily search restricted to domain         |
+| POFMA               | https://www.pofmaoffice.gov.sg/  | Use Factually (mirrors POFMA); PDF cache   |
+
+### Singapore Source Notes
+
+- **Factually first**: Always search `factually.gov.sg` before other sources. A hit is definitive government rebuttal of the claim.
+- **POFMA PDF cache**: At startup, download and parse `pofmaoffice.gov.sg/files/tabulation_of_pofma_cases_and_actions.pdf` (88 cases as of Sep 2025) into a local lookup table for fast claim cross-referencing.
+- **MAS API**: Call `eservices.mas.gov.sg/apimg-portal/` directly for financial/monetary statistics. The `DATA_GOV_API_KEY` in `.env` is for data.gov.sg only; MAS endpoints are unauthenticated.
+- **Straits Times**: Do not attempt full-text extraction. Log `extracted_text = None` and treat the URL as a credibility signal only.
+- **Data.gov.sg**: CKAN API was discontinued Dec 2025. Use the new AWS-backed REST API with the `DATA_GOV_API_KEY` from `.env`.
 
 ### General News
 
