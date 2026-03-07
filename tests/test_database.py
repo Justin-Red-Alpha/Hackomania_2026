@@ -7,6 +7,13 @@ Run with:  pytest tests/test_database.py -v
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Add project root to sys.path so `import app` works when this file is run
+# directly (e.g. via VSCode "Run Python File") as well as via pytest.
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from datetime import date
 
 import pytest
