@@ -10,10 +10,11 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
 from app.api.routes import router
 from app.database.db import init_db
@@ -35,6 +36,25 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+def _sanitise_errors(errors: list) -> list:
+    """Replace any raw bytes values in Pydantic validation error details with a placeholder."""
+    sanitised = []
+    for err in errors:
+        safe = dict(err)
+        if "input" in safe and isinstance(safe["input"], bytes):
+            safe["input"] = f"<binary data {len(safe['input'])} bytes>"
+        sanitised.append(safe)
+    return sanitised
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    return JSONResponse(
+        status_code=422,
+        content={"detail": _sanitise_errors(exc.errors())},
+    )
 
 # ── CORS (allow all localhost origins during development) ────────────────────
 app.add_middleware(
