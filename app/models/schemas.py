@@ -5,7 +5,7 @@ Shared Pydantic models for the FactGuard pipeline.
 All teams add their models to this file.
 """
 
-from datetime import date
+from datetime import date as _Date
 from enum import Enum
 from typing import List, Optional
 
@@ -102,7 +102,7 @@ class ContentMetadata(BaseModel):
     s3_url:            Optional[str]  = None
     title:             Optional[str]  = None
     publisher:         Optional[str]  = None
-    date:              Optional[date] = None
+    date:              Optional[_Date] = None
     author:            Optional[str]  = None
     section:           Optional[str]  = None
     is_opinion:        bool           = False

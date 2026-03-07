@@ -143,6 +143,12 @@ async def _extract_metadata(client: anthropic.AsyncAnthropic, text: str) -> dict
     )
 
     raw_json = response.content[0].text.strip()
+    # Strip markdown code fences that Claude sometimes wraps around JSON
+    if raw_json.startswith("```"):
+        raw_json = raw_json.split("```", 2)[1]
+        if raw_json.startswith("json"):
+            raw_json = raw_json[4:]
+        raw_json = raw_json.strip()
     logger.debug(
         "extraction_agent: received metadata from Claude",
         extra={"stage": "metadata_extraction", "raw_json": raw_json},
