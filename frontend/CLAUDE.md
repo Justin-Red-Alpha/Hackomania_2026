@@ -116,6 +116,7 @@ Your team is responsible for:
 - API keys from the request body are passed through to agents; they are NOT stored
 - CORS should be configured for local dev (`localhost:*`)
 - `app.main` mounts the router from `app/api/routes.py`
+- See [DATABASE.md](../DATABASE.md) for the full database schema and storage conventions
 
 ## Commands
 

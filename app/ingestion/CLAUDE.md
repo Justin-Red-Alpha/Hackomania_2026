@@ -81,10 +81,10 @@ class IngestionResult(BaseModel):
 - Set `content.s3_url` to the resulting S3 object URL after upload
 
 ### S3 naming convention
-```
-s3://<S3_BUCKET_NAME>/content/<YYYY-MM-DD>/<uuid>.<ext>
-```
-Use `.html` for URL-scraped pages, and the original file extension for uploads.
+
+See [DATABASE.md](../../DATABASE.md) for the full S3 naming and storage conventions.
+Content is stored at `s3://<S3_BUCKET_NAME>/content/<YYYY-MM-DD>/<uuid>.<ext>`.
+Use `.html` for URL-scraped pages and the original file extension for uploads.
 
 ### Language and translation
 - Detect the language of the extracted text using Claude
