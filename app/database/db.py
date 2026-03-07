@@ -29,7 +29,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-_DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./analysis.db")
+_DATABASE_URL: str = os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///./analysis.db"
 
 # ---------------------------------------------------------------------------
 # Internal helpers
