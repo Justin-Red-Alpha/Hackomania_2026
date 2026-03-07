@@ -16,6 +16,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import date
 
@@ -131,11 +132,12 @@ async def _classify_source(
         messages=[{"role": "user", "content": prompt}],
     )
     raw = response.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+    start, end = raw.find("{"), raw.rfind("}")
+    if start != -1 and end > start:
+        raw = raw[start : end + 1]
+    raw = re.sub(r'\("([^"\n]{1,20})"\)', r"('\1')", raw)
     try:
         result = json.loads(raw)
         logger.debug(
@@ -149,8 +151,9 @@ async def _classify_source(
         return result
     except json.JSONDecodeError:
         logger.warning(
-            "search_agent: failed to parse classification JSON",
-            extra={"stage": "classify_source", "raw": raw, "source_url": source_url},
+            "search_agent: failed to parse classification JSON — raw: %r",
+            raw[:400],
+            extra={"stage": "classify_source", "source_url": source_url},
         )
         return {
             "classification": "mention_only",
@@ -498,6 +501,7 @@ async def _investigate_claim(
             f"- [{s.name or s.url}] ({s.type or 'unknown'}, hop={s.hop_depth}):\n  {(s.extracted_text or '')[:600]}"
             for s in primary_sources
         )
+        raw_v = ""
         try:
             verdict_prompt = (
                 f"Claim: {claim.claim_summary}\n\nArticle extract: {claim.extract}"
@@ -510,13 +514,12 @@ async def _investigate_claim(
                 messages=[{"role": "user", "content": verdict_prompt}],
             )
             raw_v = verdict_resp.content[0].text.strip()
-            if raw_v.startswith("```"):
-                raw_v = raw_v.split("```")[1]
-                if raw_v.startswith("json"):
-                    raw_v = raw_v[4:]
-                raw_v = raw_v.strip()
-            if not raw_v:
-                raise ValueError("empty response from Claude")
+            raw_v = re.sub(r"^```(?:json)?\s*", "", raw_v)
+            raw_v = re.sub(r"\s*```$", "", raw_v)
+            start, end = raw_v.find("{"), raw_v.rfind("}")
+            if start != -1 and end > start:
+                raw_v = raw_v[start : end + 1]
+            raw_v = re.sub(r'\("([^"\n]{1,20})"\)', r"('\1')", raw_v)
             verdict_data = json.loads(raw_v)
             try:
                 verdict = ClaimVerdict(verdict_data.get("verdict", "unverified"))
@@ -529,7 +532,9 @@ async def _investigate_claim(
             )
         except Exception:
             logger.warning(
-                "search_agent: verdict generation failed",
+                "search_agent: verdict generation failed claim_id=%s — raw_v: %r",
+                claim.claim_id,
+                raw_v[:400],
                 extra={"stage": "verdict", "claim_id": claim.claim_id},
                 exc_info=True,
             )

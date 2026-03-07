@@ -162,7 +162,7 @@ Escape any double-quote characters inside string values with \".
 
     response = await client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=512,
+        max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )
 
