@@ -46,8 +46,20 @@ const fileNameEl  = document.getElementById('file-name');
 const fileClear   = document.getElementById('file-clear');
 const fileDropInner = document.getElementById('file-drop-inner');
 
+let _dialogPending = false;
+
+function openFileDialog() {
+  if (_dialogPending) return;
+  _dialogPending = true;
+  // reset flag when the window regains focus after the dialog closes (select or cancel)
+  window.addEventListener('focus', () => {
+    setTimeout(() => { _dialogPending = false; }, 300);
+  }, { once: true });
+  fileInput.click();
+}
+
 dropZone.addEventListener('click', (e) => {
-  if (!e.target.closest('.file-clear')) fileInput.click();
+  if (!e.target.closest('.file-clear')) openFileDialog();
 });
 
 dropZone.addEventListener('dragover', (e) => {
