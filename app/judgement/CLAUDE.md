@@ -84,6 +84,9 @@ class JudgementResult(BaseModel):
 3. **Source weighting** (from `app/config.py`, not hardcoded):
    - Government/official sources -> increase trustworthiness
    - Known misinformation outlets -> decrease trustworthiness
+   - `is_primary_source=True` -> higher weight than secondary sources
+   - `hop_depth` -> apply a small configurable decay per hop (e.g. 0.9 per hop); a primary
+     source reached via 2 citation hops is still more valuable than a mention-only source
 4. **Publisher credibility factor** - blend `publisher_credibility.score` into final score
 5. **Fakeness penalty** - if `fakeness_score > threshold`, reduce overall score
 6. **Government-source-only flag** - set `True` when all sources for any claim are govt-owned

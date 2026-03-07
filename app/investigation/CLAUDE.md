@@ -30,6 +30,7 @@
 | `PRIORITISE_LOCAL`      | `false`    | Boost country-specific sources          |
 | `COUNTRY`               | unset      | Country filter, e.g. `Singapore`        |
 | `MIN_SOURCES_PER_CLAIM` | `2`        | Minimum independent sources per claim   |
+| `MAX_HOP_DEPTH`         | `2`        | Max citation hops when chasing primary sources  |
 
 ## Input Contract
 
@@ -47,6 +48,8 @@ class Source(BaseModel):
     url: str
     source_type: str              # e.g. "news", "government", "academic"
     is_independent: bool
+    is_primary_source: bool       # True = own data/analysis; False = relays claim from elsewhere
+    hop_depth: int = 0            # 0 = direct search result; 1+ = citation chased from another source
     s3_url: Optional[str] = None  # S3 link to archived HTML copy of source page
     extracted_text: Optional[str] = None  # full text extracted from source page
 
@@ -85,6 +88,36 @@ results = await asyncio.gather(
     source_checker.run(article),
 )
 ```
+
+## Search Agent Architecture
+
+`search_agent.py` uses a bounded agentic loop to chase citations back to primary sources rather
+than accepting mere mentions as evidence.
+
+### Evidence tiers
+
+| Tier | Description | `is_primary_source` | Action |
+| ---- | ----------- | ------------------- | ------ |
+| **Primary** | Source provides its own data, analysis, or official statement | `True` | Keep |
+| **Secondary - with citation** | Relays a claim and cites a specific URL | `False` | Follow cited URL; re-classify |
+| **Mention-only** | Relays a claim with no citation trail | `False` | Discard |
+
+### Loop (per claim, simplified)
+
+```
+tavily-search(claim)
+  for each result URL (parallel via asyncio.gather):
+    tavily-extract(url)
+      Claude classifies: primary | secondary-with-citation | mention-only
+        primary                  -> keep (is_primary_source=True, hop_depth=current)
+        secondary-with-citation  -> if hop_depth < MAX_HOP_DEPTH:
+                                      tavily-extract(cited_url, hop_depth+1) -> re-classify
+        mention-only             -> discard
+```
+
+- The Claude classification prompt must return both the tier and any cited URL found in the text.
+- `MAX_HOP_DEPTH` (default 2) caps recursion; most primary sources are one hop away.
+- Hops on independent cited URLs are parallelised with `asyncio.gather`.
 
 ## Key Conventions
 
