@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 
 import anthropic
 from dotenv import load_dotenv
@@ -67,17 +68,18 @@ async def _check_statistic(
         messages=[{"role": "user", "content": f"Claim: {claim.claim_summary}\nExtract: {claim.extract}"}],
     )
     raw = filter_response.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+    start, end = raw.find("{"), raw.rfind("}")
+    if start != -1 and end > start:
+        raw = raw[start : end + 1]
     try:
         filter_data = json.loads(raw)
     except json.JSONDecodeError:
         logger.warning(
-            "statistics_agent: failed to parse stats filter JSON",
-            extra={"stage": "stats_filter", "claim_id": claim.claim_id, "raw": raw},
+            "statistics_agent: failed to parse stats filter JSON — raw: %r",
+            raw[:400],
+            extra={"stage": "stats_filter", "claim_id": claim.claim_id},
         )
         return claim
 
@@ -127,6 +129,7 @@ async def _check_statistic(
         f"Search results from authoritative sources:\n{source_snippets}"
     )
 
+    raw_verdict = ""
     try:
         verdict_response = await client.messages.create(
             model="claude-sonnet-4-6",
@@ -135,13 +138,12 @@ async def _check_statistic(
             messages=[{"role": "user", "content": verdict_prompt}],
         )
         raw_verdict = verdict_response.content[0].text.strip()
-        if raw_verdict.startswith("```"):
-            raw_verdict = raw_verdict.split("```")[1]
-            if raw_verdict.startswith("json"):
-                raw_verdict = raw_verdict[4:]
-            raw_verdict = raw_verdict.strip()
-        if not raw_verdict:
-            raise ValueError("empty response from Claude")
+        raw_verdict = re.sub(r"^```(?:json)?\s*", "", raw_verdict)
+        raw_verdict = re.sub(r"\s*```$", "", raw_verdict)
+        start, end = raw_verdict.find("{"), raw_verdict.rfind("}")
+        if start != -1 and end > start:
+            raw_verdict = raw_verdict[start : end + 1]
+        raw_verdict = re.sub(r'\("([^"\n]{1,20})"\)', r"('\1')", raw_verdict)
         verdict_data = json.loads(raw_verdict)
         try:
             verdict = ClaimVerdict(verdict_data.get("verdict", "unverified"))
@@ -155,7 +157,9 @@ async def _check_statistic(
         return claim.model_copy(update={"verdict": verdict, "reason": reason})
     except Exception:
         logger.warning(
-            "statistics_agent: verdict generation failed",
+            "statistics_agent: verdict generation failed claim_id=%s — raw_verdict: %r",
+            claim.claim_id,
+            raw_verdict[:400],
             extra={"stage": "stats_verdict", "claim_id": claim.claim_id},
             exc_info=True,
         )
