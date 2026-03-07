@@ -16,6 +16,7 @@ import aioboto3
 from dotenv import load_dotenv
 from fastapi import UploadFile
 
+from app.database.db import save_content
 from app.ingestion.extraction_agent import extract
 from app.ingestion.summariser import summarise
 from app.models.schemas import IngestionResult, InputType
@@ -218,5 +219,19 @@ async def run_ingestion(
             "title": result.content.title,
         },
     )
+
+    # Persist to database
+    try:
+        await save_content(result)
+        logger.debug(
+            "ingestion_agent: content saved to database",
+            extra={"stage": "run_ingestion", "title": result.content.title},
+        )
+    except Exception:
+        logger.warning(
+            "ingestion_agent: failed to save content to database, continuing",
+            extra={"stage": "run_ingestion"},
+            exc_info=True,
+        )
 
     return result
