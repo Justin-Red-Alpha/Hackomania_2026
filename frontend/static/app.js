@@ -125,6 +125,7 @@ form.addEventListener('submit', async (e) => {
     showError(err.message || 'An unexpected error occurred.');
   } finally {
     setLoading(false);
+    stopMascotWalk();
     pipelineSteps.hidden = true;
   }
 });
@@ -180,9 +181,36 @@ async function callApi(url, options) {
 const STEPS = ['step-extract', 'step-claims', 'step-search', 'step-judge'];
 let stepTimer = null;
 
+// Mascot walk animation
+const WALK_FRAMES = [
+  'static/guard-mascot.svg',
+  'static/guard-mascot-w2.svg',
+  'static/guard-mascot-w3.svg',
+];
+let walkTimer = null;
+let walkFrame = 0;
+
+function startMascotWalk() {
+  const img = document.getElementById('mascot-walk-img');
+  if (!img) return;
+  walkFrame = 0;
+  img.src = WALK_FRAMES[0];
+  walkTimer = setInterval(() => {
+    walkFrame = (walkFrame + 1) % WALK_FRAMES.length;
+    img.src = WALK_FRAMES[walkFrame];
+  }, 180);
+}
+
+function stopMascotWalk() {
+  if (walkTimer) { clearInterval(walkTimer); walkTimer = null; }
+  const img = document.getElementById('mascot-walk-img');
+  if (img) img.src = 'static/guard-mascot.svg';
+}
+
 function showPipeline() {
   pipelineSteps.hidden = false;
   STEPS.forEach(id => document.getElementById(id).classList.remove('active', 'done'));
+  startMascotWalk();
 
   let current = 0;
   activateStep(current);
@@ -668,6 +696,7 @@ function clearResults() {
   fg.style.strokeDasharray = '0 283';
   fg.style.stroke = 'var(--green)';
   if (stepTimer) clearInterval(stepTimer);
+  stopMascotWalk();
 }
 
 // ─────────────────────────────────────────────
