@@ -496,49 +496,118 @@ main {
   margin-bottom: 1.4rem;
 }
 
+/* ── Results section ── */
+#results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 /* ── Scores row ── */
 .scores-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: row;
   gap: 1.25rem;
+  width: 915px;
+  max-width: 100%;
+}
+
+.score-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#content-cred-card {
+  flex: 0 0 auto;
+  width: fit-content;
+  padding: 2rem;
 }
 
 @media (max-width: 680px) {
-  .scores-row { grid-template-columns: 1fr; }
+  .scores-row { width: 100%; }
 }
-
-.score-card { display: flex; flex-direction: column; }
 
 /* ── Gauge ── */
 .gauge-wrap {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: space-between;
   flex: 1;
-  justify-content: center;
 }
 
-.gauge { width: 160px; height: 96px; overflow: visible; }
+.gauge-container {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+}
+
+.gauge { width: 160px; height: 160px; }
 .gauge-bg { stroke: var(--surface-2); }
 .gauge-fg {
   stroke: var(--green);
   transition: stroke-dasharray 1s cubic-bezier(.4,0,.2,1), stroke 0.5s ease;
 }
 
+.gauge-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
 .gauge-value {
-  font-size: 2.8rem;
+  font-size: 2.2rem;
   font-weight: 800;
   line-height: 1;
   color: var(--text);
 }
 
 .gauge-label {
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* ── Rating table ── */
+.rating-table {
+  border-collapse: collapse;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.rating-table td {
+  padding: 0.25rem 0.5rem;
+  vertical-align: middle;
+}
+
+.rt-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rt-range {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.rt-label {
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 /* ── Credibility panels ── */
@@ -600,6 +669,7 @@ main {
   color: var(--text-muted);
   font-size: 1rem;
   line-height: 1.6;
+  margin-bottom: 0.75rem;
 }
 
 .known-issues {

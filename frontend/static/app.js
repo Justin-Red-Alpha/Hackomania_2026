@@ -333,13 +333,12 @@ function renderArticleWithHighlights(body, claims) {
 }
 
 // ── Degree of Fakeness gauge ──
-const ARC = 283;
+const ARC = 502.65;
 
 function renderFakenessGauge(cred) {
   if (!cred) return;
-  const score    = cred.score ?? 0;
-  const fakeness = 100 - score;
-  const dash     = ((fakeness / 100) * ARC).toFixed(1);
+  const score = cred.score ?? 0;
+  const dash  = ((score / 100) * ARC).toFixed(1);
 
   const gaugeFg  = document.getElementById('gauge-fg');
   const gaugeVal = document.getElementById('gauge-value');
@@ -349,7 +348,7 @@ function renderFakenessGauge(cred) {
   gaugeFg.style.stroke = colour;
   setTimeout(() => { gaugeFg.style.strokeDasharray = `${dash} ${ARC}`; }, 80);
 
-  gaugeVal.textContent = `${fakeness}%`;
+  gaugeVal.textContent = `${score}%`;
   gaugeVal.style.color = colour;
   gaugeRat.textContent = verdictLabel(cred.rating);
 }
@@ -357,12 +356,8 @@ function renderFakenessGauge(cred) {
 // ── Content credibility panel ──
 function renderContentCredibility(cred) {
   if (!cred) return;
-  const el = document.getElementById('content-cred-content');
-
-  const score      = cred.score ?? 0;
-  const barColour  = scoreColour(score);
-  const ratingCls  = ratingToClass(cred.rating);
-  const wq         = cred.writing_quality || {};
+  const el        = document.getElementById('content-cred-content');
+  const wq = cred.writing_quality || {};
 
   const qualityChips = Object.entries(wq).map(([k, v]) => {
     const label  = camelToLabel(k);
@@ -372,23 +367,12 @@ function renderContentCredibility(cred) {
   }).join('');
 
   el.innerHTML = `
-    <div class="score-bar-wrap">
-      <div class="score-bar-label"><span>Score</span><span>${score}/100</span></div>
-      <div class="score-bar-track">
-        <div class="score-bar-fill" style="background:${barColour}" data-width="${score}"></div>
-      </div>
-    </div>
-    <div>
-      <span class="rating-badge ${ratingCls}">${verdictLabel(cred.rating)}</span>
-      ${cred.government_source_only_flag
-        ? '<div class="govt-only-flag" style="margin-top:.5rem"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Govt sources only</div>'
-        : ''}
-    </div>
-    ${cred.summary ? `<p class="summary-text">${esc(cred.summary)}</p>` : ''}
-    <div style="display:flex;gap:.4rem;flex-wrap:wrap">${claimCountChips(cred)}</div>
+    ${cred.government_source_only_flag
+      ? '<div class="govt-only-flag" style="margin-bottom:0.75rem"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Govt sources only</div>'
+      : ''}
+    <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.35rem">${claimCountChips(cred)}</ul>
     ${qualityChips ? `<div class="quality-grid">${qualityChips}</div>` : ''}
   `;
-  animateBars(el);
 }
 
 function claimCountChips(cred) {
@@ -402,7 +386,7 @@ function claimCountChips(cred) {
   ]
     .filter(([, v]) => v != null && v > 0)
     .map(([label, v, cls]) =>
-      `<span class="rating-badge ${cls}" style="font-size:.7rem">${v} ${label}</span>`)
+      `<li><span class="rating-badge ${cls}" style="font-size:.7rem">${v} ${label}</span></li>`)
     .join('');
 }
 
@@ -691,10 +675,10 @@ function clearResults() {
     document.getElementById(id).innerHTML = '';
   });
   document.getElementById('claims-summary').textContent = '';
-  document.getElementById('gauge-value').textContent    = '—';
-  document.getElementById('gauge-rating').textContent   = 'Pending';
+  document.getElementById('gauge-value').textContent         = '—';
+  document.getElementById('gauge-rating').textContent        = 'Pending';
   const fg = document.getElementById('gauge-fg');
-  fg.style.strokeDasharray = '0 283';
+  fg.style.strokeDasharray = '0 502.65';
   fg.style.stroke = 'var(--green)';
   if (stepTimer) clearInterval(stepTimer);
   stopMascotWalk();

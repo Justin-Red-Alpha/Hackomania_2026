@@ -153,35 +153,44 @@
         <div class="article-meta" id="content-meta"></div>
       </div>
 
-      <!-- Scores row -->
+      <!-- Scores rows -->
       <div class="scores-row">
-
-        <!-- Degree of Fakeness gauge -->
         <div class="card score-card" id="fakeness-card">
-          <h3 class="card-title">Fake Score</h3>
+          <h3 class="card-title">Credibility Score</h3>
           <div class="gauge-wrap">
-            <svg class="gauge" viewBox="0 0 200 120">
-              <path class="gauge-bg" d="M20,110 A90,90 0 0,1 180,110" fill="none" stroke-width="18" stroke-linecap="round"/>
-              <path class="gauge-fg" id="gauge-fg" d="M20,110 A90,90 0 0,1 180,110" fill="none" stroke-width="18" stroke-linecap="round"
-                    stroke-dasharray="0 283"/>
-            </svg>
-            <div class="gauge-value" id="gauge-value">—</div>
-            <div class="gauge-label" id="gauge-rating">Pending</div>
+            <div class="gauge-container">
+              <svg class="gauge" viewBox="0 0 200 200">
+                <circle class="gauge-bg" cx="100" cy="100" r="80" fill="none" stroke-width="18"/>
+                <circle class="gauge-fg" id="gauge-fg" cx="100" cy="100" r="80" fill="none" stroke-width="18"
+                        stroke-dasharray="0 502.65" stroke-linecap="round" transform="rotate(-90 100 100)"/>
+              </svg>
+              <div class="gauge-center">
+                <div class="gauge-value" id="gauge-value">—</div>
+                <div class="gauge-label" id="gauge-rating">Pending</div>
+              </div>
+            </div>
+            <table class="rating-table">
+              <tbody>
+                <tr><td><span class="rt-swatch" style="background:#3fb950"></span></td><td class="rt-range">80–100%</td><td class="rt-label" style="color:#3fb950">Credible</td></tr>
+                <tr><td><span class="rt-swatch" style="background:#85d996"></span></td><td class="rt-range">60–79%</td><td class="rt-label" style="color:#85d996">Mostly Credible</td></tr>
+                <tr><td><span class="rt-swatch" style="background:#d29922"></span></td><td class="rt-range">40–59%</td><td class="rt-label" style="color:#d29922">Mixed</td></tr>
+                <tr><td><span class="rt-swatch" style="background:#e3722e"></span></td><td class="rt-range">20–39%</td><td class="rt-label" style="color:#e3722e">Low Credibility</td></tr>
+                <tr><td><span class="rt-swatch" style="background:#f85149"></span></td><td class="rt-range">0–19%</td><td class="rt-label" style="color:#f85149">Not Credible</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
-
-        <!-- Content credibility -->
         <div class="card score-card" id="content-cred-card">
           <h3 class="card-title">Content Score</h3>
           <div id="content-cred-content" class="cred-content"></div>
         </div>
+      </div>
 
-        <!-- Publisher credibility -->
+      <div class="scores-row">
         <div class="card score-card" id="publisher-cred-card">
           <h3 class="card-title">Publisher Score</h3>
           <div id="publisher-cred-content" class="cred-content"></div>
         </div>
-
       </div>
 
       <!-- Claims -->
