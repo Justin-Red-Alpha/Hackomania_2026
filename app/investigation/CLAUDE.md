@@ -19,6 +19,7 @@
 - `tavily-search` (Tavily MCP) - find sources per claim
 - `tavily-extract` (Tavily MCP) - pull full content from source pages
 - `aioboto3` - async upload of source HTML pages to AWS S3
+- **GPTZero API** (`fakeness_agent.py` only) - AI-generated text detection; no Tavily/Claude equivalent. Add `GPTZERO_API_KEY` to `.env`. Endpoint: `https://api.gptzero.me/v2/predict/text`
 
 ## Tavily Configuration (from `.env`)
 
@@ -29,6 +30,7 @@
 | `PRIORITISE_LOCAL`      | `false`    | Boost country-specific sources          |
 | `COUNTRY`               | unset      | Country filter, e.g. `Singapore`        |
 | `MIN_SOURCES_PER_CLAIM` | `2`        | Minimum independent sources per claim   |
+| `MAX_HOP_DEPTH`         | `2`        | Max citation hops when chasing primary sources  |
 
 ## Input Contract
 
@@ -46,6 +48,8 @@ class Source(BaseModel):
     url: str
     source_type: str              # e.g. "news", "government", "academic"
     is_independent: bool
+    is_primary_source: bool       # True = own data/analysis; False = relays claim from elsewhere
+    hop_depth: int = 0            # 0 = direct search result; 1+ = citation chased from another source
     s3_url: Optional[str] = None  # S3 link to archived HTML copy of source page
     extracted_text: Optional[str] = None  # full text extracted from source page
 
@@ -85,6 +89,36 @@ results = await asyncio.gather(
 )
 ```
 
+## Search Agent Architecture
+
+`search_agent.py` uses a bounded agentic loop to chase citations back to primary sources rather
+than accepting mere mentions as evidence.
+
+### Evidence tiers
+
+| Tier | Description | `is_primary_source` | Action |
+| ---- | ----------- | ------------------- | ------ |
+| **Primary** | Source provides its own data, analysis, or official statement | `True` | Keep |
+| **Secondary - with citation** | Relays a claim and cites a specific URL | `False` | Follow cited URL; re-classify |
+| **Mention-only** | Relays a claim with no citation trail | `False` | Discard |
+
+### Loop (per claim, simplified)
+
+```
+tavily-search(claim)
+  for each result URL (parallel via asyncio.gather):
+    tavily-extract(url)
+      Claude classifies: primary | secondary-with-citation | mention-only
+        primary                  -> keep (is_primary_source=True, hop_depth=current)
+        secondary-with-citation  -> if hop_depth < MAX_HOP_DEPTH:
+                                      tavily-extract(cited_url, hop_depth+1) -> re-classify
+        mention-only             -> discard
+```
+
+- The Claude classification prompt must return both the tier and any cited URL found in the text.
+- `MAX_HOP_DEPTH` (default 2) caps recursion; most primary sources are one hop away.
+- Hops on independent cited URLs are parallelised with `asyncio.gather`.
+
 ## Key Conventions
 
 - Source trustworthiness weighting is read from `app/config.py` (not hardcoded in agents)
@@ -99,15 +133,24 @@ Priority is given to Singapore-specific sources.
 
 ### Singapore-Specific (Highest Priority)
 
-| Source            | URL                             |
-| ----------------- | ------------------------------- |
-| CNA               | https://www.channelnewsasia.com |
-| The Straits Times | https://www.straitstimes.com    |
-| Data.gov.sg       | https://www.data.gov.sg         |
-| MAS               | https://www.mas.gov.sg          |
-| MOH               | https://www.moh.gov.sg          |
-| Factually         | https://www.factually.gov.sg/   |
-| POFMA             | https://www.pofmaoffice.gov.sg/ |
+| Source              | URL                              | Access method                              |
+| ------------------- | -------------------------------- | ------------------------------------------ |
+| CNA                 | https://www.channelnewsasia.com  | Tavily search/extract; RSS available       |
+| The Straits Times   | https://www.straitstimes.com     | **Paywalled** - snippet/signal only        |
+| Data.gov.sg         | https://www.data.gov.sg          | New REST API (key in .env); Tavily fallback |
+| MAS                 | https://www.mas.gov.sg           | Direct REST API - no Tavily needed         |
+| MOH                 | https://www.moh.gov.sg           | Tavily search/extract on moh.gov.sg        |
+| SingStat            | https://www.singstat.gov.sg      | Tavily search/extract; some datasets via API |
+| Factually           | https://www.factually.gov.sg/    | Tavily search restricted to domain         |
+| POFMA               | https://www.pofmaoffice.gov.sg/  | Use Factually (mirrors POFMA); PDF cache   |
+
+### Singapore Source Notes
+
+- **Factually first**: Always search `factually.gov.sg` before other sources. A hit is definitive government rebuttal of the claim.
+- **POFMA PDF cache**: At startup, download and parse `pofmaoffice.gov.sg/files/tabulation_of_pofma_cases_and_actions.pdf` (88 cases as of Sep 2025) into a local lookup table for fast claim cross-referencing.
+- **MAS API**: Call `eservices.mas.gov.sg/apimg-portal/` directly for financial/monetary statistics. The `DATA_GOV_API_KEY` in `.env` is for data.gov.sg only; MAS endpoints are unauthenticated.
+- **Straits Times**: Do not attempt full-text extraction. Log `extracted_text = None` and treat the URL as a credibility signal only.
+- **Data.gov.sg**: CKAN API was discontinued Dec 2025. Use the new AWS-backed REST API with the `DATA_GOV_API_KEY` from `.env`.
 
 ### General News
 

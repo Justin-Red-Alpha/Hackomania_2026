@@ -122,3 +122,6 @@ tests/
 - **Maintain `CHANGELOG.md`** at the repo root. Record every significant change (new feature, schema
   change, renamed field, new table, breaking change) with the date and your name so all team members
   stay informed of what has changed.
+- **Start each feature in a new branch.** Branch off `main` before beginning any new feature or
+  fix. Use descriptive branch names (e.g. `feat/ingestion-pdf`, `fix/judgement-weighting`). Merge
+  back to `main` via pull request once the work is complete and tested.

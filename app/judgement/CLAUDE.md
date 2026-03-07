@@ -49,7 +49,7 @@ class ClaimEvidence(BaseModel):
     source_id: str            # UUID matching sources.id in the database
     source_name: str          # denormalised for convenience
     source_url: str           # denormalised for convenience
-    snippet: str              # specific excerpt from source's extracted_text that relates to claim
+    snippet: str              # specific excerpt from source's extracted text that relates to claim
     supports_claim: bool      # True = this evidence supports the claim; False = contradicts it
     judgement_reason: str     # explanation of why this snippet affects the claim verdict
 
@@ -84,6 +84,9 @@ class JudgementResult(BaseModel):
 3. **Source weighting** (from `app/config.py`, not hardcoded):
    - Government/official sources -> increase trustworthiness
    - Known misinformation outlets -> decrease trustworthiness
+   - `is_primary_source=True` -> higher weight than secondary sources
+   - `hop_depth` -> apply a small configurable decay per hop (e.g. 0.9 per hop); a primary
+     source reached via 2 citation hops is still more valuable than a mention-only source
 4. **Publisher credibility factor** - blend `publisher_credibility.score` into final score
 5. **Fakeness penalty** - if `fakeness_score > threshold`, reduce overall score
 6. **Government-source-only flag** - set `True` when all sources for any claim are govt-owned
