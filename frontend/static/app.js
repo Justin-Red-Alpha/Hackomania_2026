@@ -138,8 +138,8 @@ async function submitFile() {
   const file = fileInput.files[0];
   if (!file) throw new Error('Please select a file to upload.');
   const fd = new FormData();
-  fd.append('articleFile', file);
-  return callApi('/api/v1/analyse', { method: 'POST', body: fd });
+  fd.append('file', file);
+  return callApi('/api/v1/analyse/upload', { method: 'POST', body: fd });
 }
 
 async function callApi(url, options) {
