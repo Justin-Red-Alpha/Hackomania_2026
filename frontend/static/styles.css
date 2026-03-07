@@ -641,6 +641,128 @@ main {
   flex-shrink: 0;
 }
 
+/* ── Claim detail modal ── */
+.claim-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.claim-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  max-width: 620px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 1.75rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0.25rem 0.45rem;
+  border-radius: 5px;
+  transition: color var(--transition), background var(--transition);
+}
+
+.modal-close:hover { color: var(--text); background: var(--surface-2); }
+
+.modal-claim-summary {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.45;
+  padding-right: 2rem;
+}
+
+.modal-evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-evidence-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.modal-evidence-item.ev-support    { border-left: 4px solid var(--green); }
+.modal-evidence-item.ev-contradict { border-left: 4px solid var(--red); }
+
+.modal-evidence-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.modal-source-link {
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  flex: 1;
+}
+
+.modal-source-link:hover { text-decoration: underline; }
+
+.modal-snippet {
+  background: var(--surface-2);
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.6;
+  padding: 0.65rem 0.9rem;
+}
+
+.modal-reason {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.modal-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.modal-jump {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.modal-jump:hover { border-color: var(--accent); background: var(--accent-dim); }
+
 /* ── Claim hover tooltip ── */
 .claim-tooltip {
   position: fixed;

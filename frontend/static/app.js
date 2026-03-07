@@ -264,7 +264,7 @@ function renderArticleWithHighlights(body, claims) {
     if (h.start < cursor) continue; // skip overlaps
     const hlCls = verdictHlClass(claims[h.idx].verdict);
     html += esc(body.slice(cursor, h.start));
-    html += `<mark class="claim-hl ${hlCls}" data-claim-idx="${h.idx}" onclick="scrollToClaim(${h.idx})">${esc(body.slice(h.start, h.end))}</mark>`;
+    html += `<mark class="claim-hl ${hlCls}" data-claim-idx="${h.idx}" onclick="showClaimModal(${h.idx})">${esc(body.slice(h.start, h.end))}</mark>`;
     cursor = h.end;
   }
   html += esc(body.slice(cursor));
@@ -272,7 +272,7 @@ function renderArticleWithHighlights(body, claims) {
   // Build legend
   const legend = hits.map(h => {
     const colour = verdictHlColour(claims[h.idx].verdict);
-    return `<span class="legend-chip" onclick="scrollToClaim(${h.idx})">
+    return `<span class="legend-chip" onclick="showClaimModal(${h.idx})">
       <span class="legend-dot" style="background:${colour}"></span>
       Claim ${h.idx + 1} — ${verdictLabel(claims[h.idx].verdict)}
     </span>`;
@@ -507,7 +507,60 @@ window.scrollToClaim = function(i) {
 };
 
 // ─────────────────────────────────────────────
-// Highlight tooltip (show sources on hover)
+// Claim detail modal  (shown on highlight click)
+// ─────────────────────────────────────────────
+const claimModal     = document.getElementById('claim-modal');
+const modalContent   = document.getElementById('modal-content');
+const modalClose     = document.getElementById('modal-close');
+const modalJump      = document.getElementById('modal-jump');
+let   _modalClaimIdx = 0;
+
+window.showClaimModal = function(i) {
+  const claim = _claims[i];
+  if (!claim) return;
+  _modalClaimIdx = i;
+
+  const evidence = claim.evidence || [];
+
+  const evidenceHTML = evidence.length
+    ? evidence.map(e => {
+        const cls  = e.supports_claim ? 'ev-support' : 'ev-contradict';
+        const icon = e.supports_claim
+          ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+          : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        return `
+          <div class="modal-evidence-item ${cls}">
+            <div class="modal-evidence-header">
+              <span class="evidence-badge ${cls}">${icon} ${e.supports_claim ? 'Supports' : 'Contradicts'}</span>
+              <a class="modal-source-link" href="${esc(e.source_url || '#')}" target="_blank" rel="noopener">
+                ${esc(e.source_name || e.source_url || 'Source')}
+              </a>
+            </div>
+            ${e.snippet       ? `<blockquote class="modal-snippet">${esc(e.snippet)}</blockquote>` : ''}
+            ${e.judgement_reason ? `<p class="modal-reason">${esc(e.judgement_reason)}</p>` : ''}
+          </div>`;
+      }).join('')
+    : '<p style="color:var(--text-muted);font-size:0.95rem">No evidence snippets available.</p>';
+
+  modalContent.innerHTML = `
+    <p class="modal-claim-summary">${esc(claim.claim_summary || '')}</p>
+    <span class="claim-verdict-badge ${verdictClass(claim.verdict)}"
+          style="align-self:flex-start">${verdictLabel(claim.verdict)}</span>
+    <div class="modal-evidence-list">${evidenceHTML}</div>
+  `;
+
+  claimModal.hidden = false;
+};
+
+modalClose.addEventListener('click', () => { claimModal.hidden = true; });
+claimModal.addEventListener('click', (e) => { if (e.target === claimModal) claimModal.hidden = true; });
+modalJump.addEventListener('click', () => {
+  claimModal.hidden = true;
+  scrollToClaim(_modalClaimIdx);
+});
+
+// ─────────────────────────────────────────────
+// Highlight tooltip  (hover — URL preview only)
 // ─────────────────────────────────────────────
 const claimTooltip    = document.getElementById('claim-tooltip');
 const tooltipVerdict  = claimTooltip.querySelector('.tooltip-verdict');
