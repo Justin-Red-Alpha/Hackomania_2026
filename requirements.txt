@@ -22,7 +22,7 @@ pytesseract>=0.3.13
 aioboto3>=13.0.0
 
 # Database
-aiosqlite>=0.20.0
+clickhouse-connect>=0.8.0
 aiofiles>=23.2.1
 
 # Data validation

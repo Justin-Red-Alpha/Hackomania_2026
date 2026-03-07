@@ -21,6 +21,7 @@ import pytest
 import app.database.db as db_module
 from app.models.schemas import (
     ClaimEvidence,
+    ClaimSource,
     ContentCredibility,
     ContentMetadata,
     IngestionResult,
@@ -28,7 +29,6 @@ from app.models.schemas import (
     JudgedClaim,
     JudgementResult,
     PublisherCredibility,
-    Source,
     WritingQuality,
 )
 
@@ -65,19 +65,19 @@ def sample_ingestion() -> IngestionResult:
 
 
 @pytest.fixture
-def sample_sources() -> list[Source]:
+def sample_sources() -> list[ClaimSource]:
     return [
-        Source(
+        ClaimSource(
             name="Reuters",
             url="https://reuters.com/story/1",
-            source_type="news",
+            type="news",
             is_independent=True,
             extracted_text="Reuters report on the topic.",
         ),
-        Source(
+        ClaimSource(
             name="BBC",
             url="https://bbc.com/story/2",
-            source_type="news",
+            type="news",
             is_independent=True,
         ),
     ]
@@ -101,10 +101,10 @@ def sample_judgement(sample_ingestion: IngestionResult) -> JudgementResult:
         overall_reason="Corroborated by Reuters.",
         government_source_only=False,
         sources=[
-            Source(
+            ClaimSource(
                 name="Reuters",
                 url="https://reuters.com/story/1",
-                source_type="news",
+                type="news",
                 is_independent=True,
             )
         ],
@@ -116,25 +116,25 @@ def sample_judgement(sample_ingestion: IngestionResult) -> JudgementResult:
             score=80,
             rating="credible",
             summary="Generally reliable source.",
-            bias="centre",
+            bias="center",
             known_issues=[],
             fact_checker_ratings=[],
         ),
         content_credibility=ContentCredibility(
             score=85,
-            rating="likely_credible",
+            rating="mostly_credible",
             summary="Article is mostly accurate.",
             total_claims_found=1,
             claims_true=1,
-            claims_likely_true=0,
+            claims_mostly_true=0,
             claims_unverified=0,
-            claims_likely_false=0,
+            claims_mostly_false=0,
             claims_false=0,
             government_source_only_flag=False,
             writing_quality=WritingQuality(
-                sensationalism_score=5,
-                uses_named_sources=True,
-                uses_anonymous_sources=False,
+                sensationalism=False,
+                named_sources=True,
+                anonymous_sources=False,
                 emotional_language=False,
             ),
         ),
@@ -216,7 +216,7 @@ async def test_get_sources_empty():
 
 
 async def test_save_and_get_sources(
-    sample_ingestion: IngestionResult, sample_sources: list[Source]
+    sample_ingestion: IngestionResult, sample_sources: list[ClaimSource]
 ):
     await db_module.init_db()
     await db_module.save_content(sample_ingestion)
@@ -230,7 +230,7 @@ async def test_save_and_get_sources(
 
 
 async def test_save_sources_preserves_fields(
-    sample_ingestion: IngestionResult, sample_sources: list[Source]
+    sample_ingestion: IngestionResult, sample_sources: list[ClaimSource]
 ):
     await db_module.init_db()
     await db_module.save_content(sample_ingestion)
@@ -238,7 +238,7 @@ async def test_save_sources_preserves_fields(
 
     retrieved = await db_module.get_sources("https://example.com/article")
     reuters = next(s for s in retrieved if s.name == "Reuters")
-    assert reuters.source_type == "news"
+    assert reuters.type == "news"
     assert reuters.is_independent is True
     assert reuters.extracted_text == "Reuters report on the topic."
 
@@ -265,7 +265,7 @@ async def test_save_and_get_analysis(
     assert retrieved is not None
     assert retrieved.content.url == "https://example.com/article"
     assert retrieved.content_credibility.score == 85
-    assert retrieved.content_credibility.rating == "likely_credible"
+    assert retrieved.content_credibility.rating == "mostly_credible"
     assert len(retrieved.claims) == 1
     assert retrieved.claims[0].claim_id == 1
     assert retrieved.claims[0].verdict == "true"
@@ -290,7 +290,7 @@ async def test_get_analysis_returns_most_recent(
 
 async def test_save_analysis_persists_evidence(
     sample_ingestion: IngestionResult,
-    sample_sources: list[Source],
+    sample_sources: list[ClaimSource],
     sample_judgement: JudgementResult,
 ):
     """Evidence rows should be written alongside the analysis record."""
