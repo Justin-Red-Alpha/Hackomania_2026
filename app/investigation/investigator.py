@@ -12,6 +12,7 @@ import os
 import anthropic
 from dotenv import load_dotenv
 
+from app.database.db import save_sources
 from app.investigation.fakeness_agent import run as run_fakeness
 from app.investigation.search_agent import run as run_search
 from app.investigation.source_checker import run as run_source_checker
@@ -187,4 +188,35 @@ async def run_investigation(ingestion_result: IngestionResult) -> InvestigationR
             "fakeness_score": fakeness_score,
         },
     )
+    # Persist all unique sources across claims to the database before returning
+    if article.url:
+        seen_urls: set[str] = set()
+        all_sources = []
+        for claim in final_claims:
+            for src in claim.sources:
+                if src.url not in seen_urls:
+                    seen_urls.add(src.url)
+                    all_sources.append(src)
+        try:
+            await save_sources(str(article.url), all_sources)
+            logger.debug(
+                "investigator: sources saved to database",
+                extra={
+                    "stage": "save_sources",
+                    "url": article.url,
+                    "source_count": len(all_sources),
+                },
+            )
+        except Exception:
+            logger.warning(
+                "investigator: failed to save sources to database, continuing",
+                extra={"stage": "save_sources", "url": article.url},
+                exc_info=True,
+            )
+    else:
+        logger.debug(
+            "investigator: no URL on article, skipping source database save",
+            extra={"stage": "save_sources"},
+        )
+
     return result

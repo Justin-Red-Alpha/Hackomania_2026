@@ -1,4 +1,4 @@
-﻿# Investigation Team - CLAUDE.md
+# Investigation Team - CLAUDE.md
 
 **Piece:** Step 4 (Investigator orchestrator + parallel fact-checking agents)
 **Main docs:** [../../CLAUDE.md](../../CLAUDE.md)
@@ -31,6 +31,7 @@
 | `COUNTRY`               | unset      | Country filter, e.g. `Singapore`        |
 | `MIN_SOURCES_PER_CLAIM` | `2`        | Minimum independent sources per claim   |
 | `MAX_HOP_DEPTH`         | `2`        | Max citation hops when chasing primary sources  |
+| `MAX_SEARCH_RETRIES`    | `2`        | Max retry attempts when < MIN_SOURCES_PER_CLAIM unique sources found after dedup |
 
 ## Input Contract
 
@@ -119,11 +120,42 @@ tavily-search(claim)
 - `MAX_HOP_DEPTH` (default 2) caps recursion; most primary sources are one hop away.
 - Hops on independent cited URLs are parallelised with `asyncio.gather`.
 
+### Deduplication and retry
+
+After all citation chasing completes for a claim, sources are deduplicated by URL. Each removed
+duplicate is logged at `DEBUG` level with the `duplicate_url` and `claim_id` fields for
+explainability and audit traceability.
+
+If the number of unique sources remaining after deduplication is below `MIN_SOURCES_PER_CLAIM`,
+the agent retries the Tavily search up to `MAX_SEARCH_RETRIES` times. Each retry uses a
+Claude-generated alternative query (different angle or keywords) to surface different sources.
+Duplicate sources encountered during retries are also logged and discarded. Each retry attempt
+and its outcome (sources gained, total count) are logged at `DEBUG` level.
+
+| Config key              | Default | Trigger condition                                           |
+| ----------------------- | ------- | ----------------------------------------------------------- |
+| `MIN_SOURCES_PER_CLAIM` | `2` | Retry if unique sources < this value after deduplication    |
+| `MAX_SEARCH_RETRIES`  | `2`   | Maximum number of retry search attempts per claim           |
+
+## Database Persistence
+
+Before `run_investigation` returns, `investigator.py` must persist all sources collected
+during the investigation to the database using `save_sources` from `app/database/db.py`:
+
+1. Collect every unique `ClaimSource` across all claims (deduplicate by URL).
+2. Call `await save_sources(article.url, sources)` to write them to the `sources` table.
+3. Log success at `DEBUG` level: `stage=save_sources`, `url`, `source_count`.
+4. Catch any exception and log at `WARNING` with `exc_info=True` (non-fatal; do not abort
+   the investigation or raise to the caller).
+5. Skip the DB write if `article.url` is `None` (plain-text inputs have no URL); log at
+   `DEBUG` that the save was skipped.
 ## Key Conventions
 
 - Source trustworthiness weighting is read from `app/config.py` (not hardcoded in agents)
 - `government_source_only` is `True` when all sources for a claim are government-owned
 - Each agent returns a structured Pydantic model; `investigator.py` merges them
+- `investigator.py` saves all investigation sources to the database before returning (see
+  Database Persistence above); failures are logged and non-fatal
 - See [DATABASE.md](../../DATABASE.md) for the `sources` table schema and S3 archival conventions
 
 ## Credibility Reference Sources

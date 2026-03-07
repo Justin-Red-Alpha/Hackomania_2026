@@ -3,6 +3,11 @@ Step 4a: Find corroborating / contradicting sources for each claim.
 
 Implements the bounded citation-chasing loop documented in investigation/CLAUDE.md.
 Always searches factually.gov.sg first; archives source HTML pages to S3 (best-effort).
+
+After chasing all citations for a claim:
+- Deduplicates sources by URL; logs every removed duplicate for audit/explainability.
+- Retries up to MAX_SEARCH_RETRIES times with Claude-generated alternative queries if
+  fewer than MIN_SOURCES_PER_CLAIM unique sources remain after deduplication.
 """
 
 from __future__ import annotations
@@ -54,6 +59,12 @@ Return a JSON object:
   "reason": "Concise explanation referencing specific source evidence"
 }
 Return ONLY the JSON object."""
+
+_ALT_QUERY_SYSTEM = """\
+You are a search query specialist. Given a factual claim that needs verification and a retry
+attempt number, generate an alternative search query that may surface different sources.
+Vary the angle, keywords, or framing from the original claim. Be concise and factual.
+Return ONLY the search query string with no explanation or punctuation."""
 
 _GOVT_DOMAINS = (
     ".gov.sg", ".gov.uk", ".gov.au", ".gov.us", ".gov", ".gc.ca",
@@ -143,6 +154,41 @@ async def _classify_source(
             "source_type": "other",
             "is_independent": True,
         }
+
+
+async def _generate_alt_query(
+    client: anthropic.AsyncAnthropic,
+    claim_summary: str,
+    attempt: int,
+) -> str:
+    """Use Claude to generate an alternative Tavily search query for a retry attempt."""
+    try:
+        response = await client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=128,
+            system=_ALT_QUERY_SYSTEM,
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Claim: {claim_summary}\n"
+                    f"Retry attempt: {attempt}\n"
+                    f"Generate an alternative search query:"
+                ),
+            }],
+        )
+        alt_query = response.content[0].text.strip()
+        logger.debug(
+            "search_agent: alternative query generated",
+            extra={"stage": "alt_query", "attempt": attempt, "alt_query": alt_query},
+        )
+        return alt_query
+    except Exception:
+        logger.warning(
+            "search_agent: failed to generate alternative query, using original claim",
+            extra={"stage": "alt_query", "attempt": attempt},
+            exc_info=True,
+        )
+        return claim_summary
 
 async def _process_url(
     client: anthropic.AsyncAnthropic,
@@ -261,7 +307,7 @@ async def _investigate_claim(
     claim: Claim,
     article: ContentMetadata,
 ) -> Claim:
-    """Search for sources, chase citations, and produce an initial verdict for a single claim."""
+    """Search for sources, chase citations, deduplicate, retry if needed, and produce a verdict."""
     logger.debug(
         "search_agent: investigating claim",
         extra={
@@ -330,15 +376,108 @@ async def _investigate_claim(
     for result_list in await asyncio.gather(*url_tasks):
         all_sources.extend(result_list)
 
-    # Deduplicate by URL
+    # Deduplicate by URL; log each removed duplicate for audit and explainability
     seen_urls: set[str] = set()
     unique_sources: list[ClaimSource] = []
+    duplicate_count = 0
     for src in all_sources:
         if src.url not in seen_urls:
             seen_urls.add(src.url)
             unique_sources.append(src)
+        else:
+            duplicate_count += 1
+            logger.debug(
+                "search_agent: duplicate source removed",
+                extra={
+                    "stage": "deduplication",
+                    "claim_id": claim.claim_id,
+                    "duplicate_url": src.url,
+                },
+            )
+    if duplicate_count > 0:
+        logger.debug(
+            "search_agent: deduplication complete",
+            extra={
+                "stage": "deduplication",
+                "claim_id": claim.claim_id,
+                "removed_count": duplicate_count,
+                "remaining_count": len(unique_sources),
+            },
+        )
 
-    # Determine government-source-only flag
+    # Retry with Claude-generated alternative queries if insufficient unique sources found
+    for retry_num in range(1, cfg.MAX_SEARCH_RETRIES + 1):
+        if len(unique_sources) >= cfg.MIN_SOURCES_PER_CLAIM:
+            break
+        logger.debug(
+            "search_agent: insufficient sources after deduplication, retrying",
+            extra={
+                "stage": "retry_search",
+                "claim_id": claim.claim_id,
+                "sources_found": len(unique_sources),
+                "min_required": cfg.MIN_SOURCES_PER_CLAIM,
+                "retry_attempt": retry_num,
+                "max_retries": cfg.MAX_SEARCH_RETRIES,
+            },
+        )
+        alt_query = await _generate_alt_query(client, claim.claim_summary, retry_num)
+        logger.debug(
+            "search_agent: retry with alternative query",
+            extra={
+                "stage": "retry_search",
+                "claim_id": claim.claim_id,
+                "retry_attempt": retry_num,
+                "alt_query": alt_query,
+            },
+        )
+        try:
+            retry_resp = await tavily.search(
+                query=alt_query,
+                search_depth=cfg.TAVILY_SEARCH_DEPTH,
+                max_results=cfg.TAVILY_MAX_RESULTS,
+            )
+            retry_urls = [
+                r["url"]
+                for r in retry_resp.get("results", [])
+                if r["url"] not in seen_urls
+            ]
+        except Exception:
+            logger.warning(
+                "search_agent: retry search failed",
+                extra={"stage": "retry_search", "claim_id": claim.claim_id, "retry_attempt": retry_num},
+                exc_info=True,
+            )
+            break
+        retry_tasks = [
+            _process_url(client, tavily, claim.claim_summary, url, 0)
+            for url in retry_urls
+        ]
+        for result_list in await asyncio.gather(*retry_tasks):
+            for src in result_list:
+                if src.url not in seen_urls:
+                    seen_urls.add(src.url)
+                    unique_sources.append(src)
+                else:
+                    logger.debug(
+                        "search_agent: duplicate source removed during retry",
+                        extra={
+                            "stage": "deduplication",
+                            "claim_id": claim.claim_id,
+                            "duplicate_url": src.url,
+                            "retry_attempt": retry_num,
+                        },
+                    )
+        logger.debug(
+            "search_agent: retry search complete",
+            extra={
+                "stage": "retry_search",
+                "claim_id": claim.claim_id,
+                "retry_attempt": retry_num,
+                "total_sources": len(unique_sources),
+            },
+        )
+
+    # Determine government-source-only flag (recalculated after all retries)
     gov_only = bool(unique_sources) and all(
         any(d in src.url.lower() for d in _GOVT_DOMAINS) for src in unique_sources
     )
@@ -354,7 +493,8 @@ async def _investigate_claim(
         )
         try:
             verdict_prompt = (
-                f"Claim: {claim.claim_summary}\n\nArticle extract: {claim.extract}\n\nPrimary source evidence:\n{source_summaries}"
+                f"Claim: {claim.claim_summary}\n\nArticle extract: {claim.extract}"
+                f"\n\nPrimary source evidence:\n{source_summaries}"
             )
             verdict_resp = await client.messages.create(
                 model="claude-sonnet-4-6",
@@ -394,6 +534,7 @@ async def _investigate_claim(
 async def run(claims: list[Claim], article: ContentMetadata) -> list[Claim]:
     """
     For each claim, search for and classify sources using the bounded citation-chasing loop.
+    Deduplicates results and retries with alternative queries if sources are insufficient.
 
     Args:
         claims: List of claims extracted by the investigator.

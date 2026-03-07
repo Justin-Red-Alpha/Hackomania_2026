@@ -236,3 +236,4 @@ class JudgementResult(BaseModel):
     publisher_credibility: PublisherCredibility
     content_credibility:   ContentCredibility
     claims:                List[JudgedClaim] = []
+    is_conflicted:         bool              = False
