@@ -95,8 +95,9 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
         from app.judgement.judgement import judge
 
         result: JudgementResult = await judge(
-            content=content,
+            ingestion=content,
             investigation=investigation,
+            anthropic_api_key=anthropic_key,
         )
     except ImportError:
         raise HTTPException(
