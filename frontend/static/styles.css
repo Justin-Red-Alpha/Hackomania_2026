@@ -604,14 +604,12 @@ main {
   color: #0d1117;
   font-weight: 500;
   cursor: pointer;
+  position: relative;
 }
 
-.claim-hl-1 { background: #58a6ff; }
-.claim-hl-2 { background: #f85149; }
-.claim-hl-3 { background: #e3722e; }
-.claim-hl-4 { background: #d29922; }
-.claim-hl-5 { background: #3fb950; }
-.claim-hl-6 { background: #bc8cff; }
+.claim-hl-green  { background: #3fb950; }
+.claim-hl-yellow { background: #d29922; }
+.claim-hl-red    { background: #f85149; }
 
 .highlight-legend {
   display: flex;
@@ -642,6 +640,54 @@ main {
   border-radius: 3px;
   flex-shrink: 0;
 }
+
+/* ── Claim hover tooltip ── */
+.claim-tooltip {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 0.75rem 1rem;
+  max-width: 300px;
+  z-index: 1000;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tooltip-verdict {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tooltip-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tooltip-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.tooltip-sources a {
+  color: var(--accent);
+  font-size: 0.85rem;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tooltip-sources a:hover { text-decoration: underline; }
 
 /* ── Article metadata ── */
 .article-meta { display: flex; flex-direction: column; gap: 0.75rem; }

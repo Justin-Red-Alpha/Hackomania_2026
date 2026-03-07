@@ -14,6 +14,11 @@ const pipelineSteps  = document.getElementById('pipeline-steps');
 const resultsSection = document.getElementById('results-section');
 
 // ─────────────────────────────────────────────
+// Global claims store (used by highlight tooltip)
+// ─────────────────────────────────────────────
+let _claims = [];
+
+// ─────────────────────────────────────────────
 // Input mode tabs (URL / File)
 // ─────────────────────────────────────────────
 let activeTab = 'url';
@@ -179,10 +184,11 @@ function activateStep(idx) {
 //   { content, publisher_credibility, content_credibility, claims[] }
 // ─────────────────────────────────────────────
 function showResults(data) {
+  _claims = data.claims || [];
   resultsSection.hidden = false;
   resultsSection.classList.add('fade-in');
 
-  renderContentMeta(data.content, data.claims || []);
+  renderContentMeta(data.content, _claims);
   renderFakenessGauge(data.content_credibility);
   renderContentCredibility(data.content_credibility);
   renderPublisherCredibility(data.publisher_credibility);
@@ -219,7 +225,26 @@ function renderContentMeta(content, claims) {
 }
 
 // ── Article body with per-claim colour highlights ──
-const HL_COLOURS = ['#58a6ff','#f85149','#e3722e','#d29922','#3fb950','#bc8cff'];
+const VERDICT_HL = {
+  true:         'claim-hl-green',
+  mostly_true:  'claim-hl-green',
+  misleading:   'claim-hl-yellow',
+  unverified:   'claim-hl-yellow',
+  mostly_false: 'claim-hl-red',
+  false:        'claim-hl-red',
+};
+
+const VERDICT_HL_COLOUR = {
+  true:         '#3fb950',
+  mostly_true:  '#3fb950',
+  misleading:   '#d29922',
+  unverified:   '#d29922',
+  mostly_false: '#f85149',
+  false:        '#f85149',
+};
+
+function verdictHlClass(v)   { return VERDICT_HL[v]        || 'claim-hl-yellow'; }
+function verdictHlColour(v)  { return VERDICT_HL_COLOUR[v] || '#d29922'; }
 
 function renderArticleWithHighlights(body, claims) {
   // Build [{start, end, idx}] for each claim extract found in body
@@ -237,19 +262,21 @@ function renderArticleWithHighlights(body, claims) {
   let cursor = 0;
   for (const h of hits) {
     if (h.start < cursor) continue; // skip overlaps
+    const hlCls = verdictHlClass(claims[h.idx].verdict);
     html += esc(body.slice(cursor, h.start));
-    html += `<mark class="claim-hl claim-hl-${h.idx + 1}" onclick="scrollToClaim(${h.idx})" title="Claim #${h.idx + 1}">${esc(body.slice(h.start, h.end))}</mark>`;
+    html += `<mark class="claim-hl ${hlCls}" data-claim-idx="${h.idx}" onclick="scrollToClaim(${h.idx})">${esc(body.slice(h.start, h.end))}</mark>`;
     cursor = h.end;
   }
   html += esc(body.slice(cursor));
 
   // Build legend
-  const legend = hits.map(h =>
-    `<span class="legend-chip" onclick="scrollToClaim(${h.idx})">
-      <span class="legend-dot" style="background:${HL_COLOURS[h.idx % HL_COLOURS.length]}"></span>
-      Claim ${h.idx + 1}
-    </span>`
-  ).join('');
+  const legend = hits.map(h => {
+    const colour = verdictHlColour(claims[h.idx].verdict);
+    return `<span class="legend-chip" onclick="scrollToClaim(${h.idx})">
+      <span class="legend-dot" style="background:${colour}"></span>
+      Claim ${h.idx + 1} — ${verdictLabel(claims[h.idx].verdict)}
+    </span>`;
+  }).join('');
 
   return `<div class="article-body">${html}</div>
     ${legend ? `<div class="highlight-legend">${legend}</div>` : ''}`;
@@ -478,6 +505,52 @@ window.scrollToClaim = function(i) {
   if (body.hidden) { body.hidden = false; item.classList.add('open'); }
   item.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
+
+// ─────────────────────────────────────────────
+// Highlight tooltip (show sources on hover)
+// ─────────────────────────────────────────────
+const claimTooltip    = document.getElementById('claim-tooltip');
+const tooltipVerdict  = claimTooltip.querySelector('.tooltip-verdict');
+const tooltipSources  = claimTooltip.querySelector('.tooltip-sources');
+
+document.addEventListener('mousemove', (e) => {
+  if (!claimTooltip.hidden) {
+    // Keep tooltip within viewport horizontally
+    const tw = claimTooltip.offsetWidth;
+    const left = Math.min(e.clientX + 14, window.innerWidth - tw - 8);
+    claimTooltip.style.left = `${left}px`;
+    claimTooltip.style.top  = `${e.clientY - claimTooltip.offsetHeight - 8}px`;
+  }
+});
+
+document.addEventListener('mouseover', (e) => {
+  const hl = e.target.closest('.claim-hl');
+  if (!hl) return;
+  const idx   = parseInt(hl.dataset.claimIdx, 10);
+  const claim = _claims[idx];
+  if (!claim) return;
+
+  const vClass = verdictHlClass(claim.verdict);
+  tooltipVerdict.textContent  = verdictLabel(claim.verdict);
+  tooltipVerdict.className    = `tooltip-verdict claim-hl ${vClass}`;
+  tooltipVerdict.style.background = 'none';
+  tooltipVerdict.style.color  = verdictHlColour(claim.verdict);
+
+  const sources = (claim.sources || []).filter(s => s.url);
+  tooltipSources.innerHTML = sources.length
+    ? sources.map(s =>
+        `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name || s.url)}</a>`
+      ).join('')
+    : '<span style="color:var(--text-muted);font-size:0.85rem">No sources available</span>';
+
+  claimTooltip.hidden = false;
+});
+
+document.addEventListener('mouseout', (e) => {
+  if (e.target.closest('.claim-hl') && !e.relatedTarget?.closest('.claim-hl')) {
+    claimTooltip.hidden = true;
+  }
+});
 
 // ─────────────────────────────────────────────
 // Animate score bars
