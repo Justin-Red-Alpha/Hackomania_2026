@@ -69,15 +69,23 @@ dropZone.addEventListener('dragover', (e) => {
 
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
 
+let _droppedFile = null;
+
 dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('drag-over');
   const file = e.dataTransfer.files[0];
-  if (file) setSelectedFile(file);
+  if (file) {
+    _droppedFile = file;
+    setSelectedFile(file);
+  }
 });
 
 fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) setSelectedFile(fileInput.files[0]);
+  if (fileInput.files[0]) {
+    _droppedFile = null;
+    setSelectedFile(fileInput.files[0]);
+  }
 });
 
 fileClear.addEventListener('click', (e) => {
@@ -93,6 +101,7 @@ function setSelectedFile(file) {
 
 function clearFile() {
   fileInput.value = '';
+  _droppedFile = null;
   fileDropInner.hidden = false;
   fileSelected.hidden  = true;
 }
@@ -147,7 +156,7 @@ async function submitText() {
 }
 
 async function submitFile() {
-  const file = fileInput.files[0];
+  const file = fileInput.files[0] || _droppedFile;
   if (!file) throw new Error('Please select a file to upload.');
   const fd = new FormData();
   fd.append('file', file);
