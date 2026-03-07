@@ -64,6 +64,7 @@ body {
 }
 
 .logo-icon { font-size: 2rem; color: var(--accent); }
+.logo-mascot { height: 36px; width: auto; display: block; }
 
 .logo-text {
   font-size: 1.7rem;
