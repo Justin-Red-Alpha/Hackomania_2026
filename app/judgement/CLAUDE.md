@@ -94,6 +94,7 @@ class JudgementResult(BaseModel):
 - `excludeGovernmentSourcesOnly` flag: if `True`, flag verdicts backed only by govt sources
 - Each `ClaimEvidence.snippet` must be a verbatim excerpt from `source.extracted_text`
 - `ClaimEvidence.source_id` must match the corresponding row in the `sources` DB table
+- See [DATABASE.md](../../DATABASE.md) for the `analysis` and `evidence` table schemas
 
 ## Commands
 

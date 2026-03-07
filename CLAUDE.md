@@ -106,6 +106,7 @@ tests/
 - Secrets (API keys) are loaded from `.env` via `python-dotenv`.
 - Source trustworthiness weighting lives in `app/config.py`, not hardcoded in agents.
 - All DB functions are `async`.
+- Database schema, table definitions, S3 conventions, and write responsibilities are in [DATABASE.md](DATABASE.md).
 
 ## General Directives
 

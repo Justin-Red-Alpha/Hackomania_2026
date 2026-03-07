@@ -90,6 +90,7 @@ results = await asyncio.gather(
 - Source trustworthiness weighting is read from `app/config.py` (not hardcoded in agents)
 - `government_source_only` is `True` when all sources for a claim are government-owned
 - Each agent returns a structured Pydantic model; `investigator.py` merges them
+- See [DATABASE.md](../../DATABASE.md) for the `sources` table schema and S3 archival conventions
 
 ## Credibility Reference Sources
 
