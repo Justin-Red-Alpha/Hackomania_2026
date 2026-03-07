@@ -27,6 +27,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
     document.getElementById('tab-url').hidden  = activeTab !== 'url';
     document.getElementById('tab-file').hidden = activeTab !== 'file';
+    document.getElementById('tab-text').hidden = activeTab !== 'text';
   });
 });
 
@@ -90,7 +91,9 @@ form.addEventListener('submit', async (e) => {
   showPipeline();
 
   try {
-    const result = activeTab === 'file' ? await submitFile() : await submitUrl();
+    const result = activeTab === 'file' ? await submitFile()
+                 : activeTab === 'text' ? await submitText()
+                 : await submitUrl();
     showResults(result);
   } catch (err) {
     showError(err.message || 'An unexpected error occurred.');
@@ -113,6 +116,16 @@ async function submitUrl() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ articleUrl: url }),
+  });
+}
+
+async function submitText() {
+  const text = document.getElementById('articleText').value.trim();
+  if (!text) throw new Error('Please paste some article text.');
+  return callApi('/api/v1/analyse', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ articleText: text }),
   });
 }
 

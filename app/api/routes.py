@@ -33,28 +33,31 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
     Accepts an article URL and API keys, runs the full fact-checking pipeline,
     and returns a JudgementResult with credibility scores and per-claim verdicts.
     """
-    article_url    = str(request.articleUrl)
-    anthropic_key  = os.environ.get("ANTHROPIC_API_KEY", "")
-    tavily_key     = os.environ.get("TAVILY_API_KEY", "")
+    article_url   = str(request.articleUrl) if request.articleUrl else None
+    article_text  = request.articleText or None
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    tavily_key    = os.environ.get("TAVILY_API_KEY", "")
 
     if not anthropic_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY is not configured on the server.")
     if not tavily_key:
         raise HTTPException(status_code=500, detail="TAVILY_API_KEY is not configured on the server.")
 
-    logger.info("Analyse request received for: %s", article_url)
+    logger.info("Analyse request received — url=%s text=%s",
+                article_url, bool(article_text))
 
-    # ── Step 0: DB cache lookup ─────────────────────────────────────────────
-    try:
-        from app.database.db import get_cached_result
-        cached = await get_cached_result(article_url)
-        if cached:
-            logger.info("Cache hit for: %s", article_url)
-            return cached
-    except ImportError:
-        logger.debug("Database module not yet available — skipping cache lookup")
-    except Exception as exc:
-        logger.warning("Cache lookup failed: %s", exc)
+    # ── Step 0: DB cache lookup (URL only — text has no stable cache key) ───
+    if article_url:
+        try:
+            from app.database.db import get_cached_result
+            cached = await get_cached_result(article_url)
+            if cached:
+                logger.info("Cache hit for: %s", article_url)
+                return cached
+        except ImportError:
+            logger.debug("Database module not yet available — skipping cache lookup")
+        except Exception as exc:
+            logger.warning("Cache lookup failed: %s", exc)
 
     # ── Step 1–3: Ingestion ─────────────────────────────────────────────────
     try:
@@ -62,7 +65,7 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
         from app.ingestion.extraction_agent import extract
         from app.ingestion.summariser import summarise
 
-        raw       = await ingest(article_url, tavily_key)
+        raw       = await ingest(article_url or article_text, tavily_key)
         extracted = await extract(raw)
         content   = await summarise(extracted)
     except ImportError:

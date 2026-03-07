@@ -10,7 +10,7 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, model_validator
 
 
 # ─────────────────────────────────────────────
@@ -63,9 +63,21 @@ class ClaimVerdict(str, Enum):
 # ─────────────────────────────────────────────
 
 class AnalyseRequest(BaseModel):
-    """Request body for POST /api/v1/analyse."""
+    """Request body for POST /api/v1/analyse.
 
-    articleUrl: HttpUrl
+    Exactly one of articleUrl or articleText must be provided.
+    """
+
+    articleUrl:  Optional[HttpUrl] = None
+    articleText: Optional[str]     = None
+
+    @model_validator(mode="after")
+    def require_one_input(self) -> "AnalyseRequest":
+        if not self.articleUrl and not self.articleText:
+            raise ValueError("Provide either articleUrl or articleText.")
+        if self.articleUrl and self.articleText:
+            raise ValueError("Provide only one of articleUrl or articleText, not both.")
+        return self
 
 
 # ─────────────────────────────────────────────

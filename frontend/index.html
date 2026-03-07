@@ -38,6 +38,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             File Upload
           </button>
+          <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="text">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+            Plain Text
+          </button>
         </div>
 
         <!-- URL tab -->
@@ -74,6 +78,16 @@
                 <button type="button" class="file-clear" id="file-clear" aria-label="Remove file">&#x2715;</button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Text tab -->
+        <div class="tab-panel" id="tab-text" hidden>
+          <div class="field">
+            <label for="articleText">Article Text <span class="req">*</span></label>
+            <textarea id="articleText" name="articleText" rows="10"
+                      placeholder="Paste the full article text here…"></textarea>
+            <span class="field-hint">Paste the raw article content. No URL needed.</span>
           </div>
         </div>
 
