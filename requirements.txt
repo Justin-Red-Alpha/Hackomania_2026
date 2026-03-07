@@ -16,8 +16,6 @@ python-docx>=1.1.0
 beautifulsoup4>=4.12.0
 markdown>=3.7.0
 striprtf>=0.0.26
-Pillow>=11.0.0
-pytesseract>=0.3.13
 
 # Cloud storage
 aioboto3>=13.0.0

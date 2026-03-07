@@ -29,7 +29,7 @@ Either a URL string or a direct file upload:
 | HTML       | `beautifulsoup4`               |
 | MD         | `markdown` + `beautifulsoup4`  |
 | RTF        | `striprtf`                     |
-| Image      | `Pillow` + `pytesseract` (OCR) |
+| Image      | Claude vision API (OCR)        |
 | Plain text | (no parser needed)             |
 
 API keys come from `.env`: `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`, `AWS_ACCESS_KEY_ID`,

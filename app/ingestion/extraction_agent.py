@@ -183,6 +183,12 @@ async def _extract_metadata(client: anthropic.AsyncAnthropic, text: str) -> dict
     )
 
     sample = text[:6000]
+    if not sample.strip():
+        logger.warning(
+            "extraction_agent: empty text passed to metadata extraction, returning empty metadata",
+            extra={"stage": "metadata_extraction"},
+        )
+        return {}
     response = await client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=512,
@@ -327,6 +333,11 @@ async def extract(
         raw_text = await _parse_image_with_claude(async_client, raw_bytes)
     else:
         raw_text = _parse_raw_text(raw_content, input_type)
+        if not raw_text.strip() and input_type == InputType.pdf:
+            raise ValueError(
+                "PDF contains no selectable text. It may be a scanned document. "
+                "Please convert it to a text-based PDF or paste the text directly."
+            )
     logger.debug(
         "extraction_agent: raw text extracted",
         extra={"stage": "parse", "raw_text_length": len(raw_text)},

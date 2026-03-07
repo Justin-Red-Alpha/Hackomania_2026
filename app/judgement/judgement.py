@@ -168,6 +168,10 @@ Respond with a JSON object only (no markdown):
     # Strip markdown code fences if present
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
+    # Extract outermost JSON object in case Claude added surrounding text
+    start, end = raw.find("{"), raw.rfind("}")
+    if start != -1 and end > start:
+        raw = raw[start : end + 1]
 
     try:
         data = json.loads(raw)
@@ -215,6 +219,9 @@ ARTICLE:
     raw = response.content[0].text.strip()
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
+    start, end = raw.find("{"), raw.rfind("}")
+    if start != -1 and end > start:
+        raw = raw[start : end + 1]
 
     try:
         data = json.loads(raw)
