@@ -180,7 +180,9 @@ Scoring chain order:
    → if max_possible_sum == 0, return 50 directly
 5. × net source confidence multiplier (NET_CONFIDENCE_MULTIPLIERS)
    Clamp per-claim score to 0–100 immediately after this step
+   SKIP steps 5 and 5a entirely when max_possible_sum == 0 (all sources inconclusive)
 5a. if government_source_only=True: × GOVERNMENT_ONLY_BOOST, re-clamp to 0–100
+   SKIP when max_possible_sum == 0 (no relevant scoring evidence)
 6. → average all claim scores = claims_score
 7. blend: (claims_score × CLAIMS_BLEND_WEIGHT) + (publisher_score × PUBLISHER_BLEND_WEIGHT)
 8. if fakeness_score > FAKENESS_THRESHOLD: × FAKENESS_PENALTY_MULTIPLIER

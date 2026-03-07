@@ -305,19 +305,22 @@ async def judge_claim(
         normalized = (raw_sum / max_possible_sum + 1) / 2 * 100
         claim_score = normalized
 
-    # 5. Apply net source confidence multiplier (only relevant evidence counts)
-    supports_count = sum(1 for ev in evidence_list if ev.supports_claim and ev.is_relevant)
-    contradicts_count = sum(1 for ev in evidence_list if not ev.supports_claim and ev.is_relevant)
-    net = supports_count - contradicts_count
-    multiplier = net_confidence_multiplier(net)
-    claim_score = claim_score * multiplier
-    claim_score = max(0.0, min(100.0, claim_score))
-
-    # 5a. Government source only boost
+    # 5. Apply net source confidence multiplier and government boost only when
+    #    there is actual relevant scoring evidence; skip both when all sources
+    #    were inconclusive (max_possible_sum == 0) to keep the score at 50.
     government_source_only = claim.government_source_only
-    if government_source_only:
-        claim_score = claim_score * GOVERNMENT_ONLY_BOOST
+    if max_possible_sum > 0:
+        supports_count = sum(1 for ev in evidence_list if ev.supports_claim and ev.is_relevant)
+        contradicts_count = sum(1 for ev in evidence_list if not ev.supports_claim and ev.is_relevant)
+        net = supports_count - contradicts_count
+        multiplier = net_confidence_multiplier(net)
+        claim_score = claim_score * multiplier
         claim_score = max(0.0, min(100.0, claim_score))
+
+        # 5a. Government source only boost
+        if government_source_only:
+            claim_score = claim_score * GOVERNMENT_ONLY_BOOST
+            claim_score = max(0.0, min(100.0, claim_score))
 
     # Build overall_reason note
     overall_reason_parts: list[str] = []
@@ -329,7 +332,7 @@ async def judge_claim(
         overall_reason_parts.append(
             "No source text was available; claim marked as unverified (neutral score)."
         )
-    if government_source_only:
+    if government_source_only and max_possible_sum > 0:
         overall_reason_parts.append(
             "All sources for this claim are government-owned; applied government source boost."
         )
