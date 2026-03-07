@@ -182,7 +182,7 @@ function showResults(data) {
   resultsSection.hidden = false;
   resultsSection.classList.add('fade-in');
 
-  renderContentMeta(data.content);
+  renderContentMeta(data.content, data.claims || []);
   renderFakenessGauge(data.content_credibility);
   renderContentCredibility(data.content_credibility);
   renderPublisherCredibility(data.publisher_credibility);
@@ -192,7 +192,7 @@ function showResults(data) {
 }
 
 // ── Content metadata ──
-function renderContentMeta(content) {
+function renderContentMeta(content, claims) {
   if (!content) return;
   const el = document.getElementById('content-meta');
 
@@ -204,13 +204,55 @@ function renderContentMeta(content) {
     content.is_opinion != null && `<span class="meta-chip"><strong>Opinion</strong> ${content.is_opinion ? 'Yes' : 'No'}</span>`,
   ].filter(Boolean).join('');
 
+  const bodyHTML = content.body
+    ? renderArticleWithHighlights(content.body, claims)
+    : '';
+
   el.innerHTML = `
     ${content.title
       ? `<a class="article-title-link" href="${esc(content.url)}" target="_blank" rel="noopener">${esc(content.title)}</a>`
       : `<a class="article-title-link" href="${esc(content.url)}" target="_blank" rel="noopener">${esc(content.url)}</a>`
     }
     ${chips ? `<div class="meta-row">${chips}</div>` : ''}
+    ${bodyHTML}
   `;
+}
+
+// ── Article body with per-claim colour highlights ──
+const HL_COLOURS = ['#58a6ff','#f85149','#e3722e','#d29922','#3fb950','#bc8cff'];
+
+function renderArticleWithHighlights(body, claims) {
+  // Build [{start, end, idx}] for each claim extract found in body
+  const hits = [];
+  claims.forEach((claim, idx) => {
+    if (!claim.extract) return;
+    const raw = claim.extract.replace(/^[\u201c\u2018"']/u, '').replace(/[\u201d\u2019"']$/u, '').trim();
+    const pos = body.indexOf(raw);
+    if (pos !== -1) hits.push({ start: pos, end: pos + raw.length, idx });
+  });
+  hits.sort((a, b) => a.start - b.start);
+
+  // Build HTML segments
+  let html = '';
+  let cursor = 0;
+  for (const h of hits) {
+    if (h.start < cursor) continue; // skip overlaps
+    html += esc(body.slice(cursor, h.start));
+    html += `<mark class="claim-hl claim-hl-${h.idx + 1}" onclick="scrollToClaim(${h.idx})" title="Claim #${h.idx + 1}">${esc(body.slice(h.start, h.end))}</mark>`;
+    cursor = h.end;
+  }
+  html += esc(body.slice(cursor));
+
+  // Build legend
+  const legend = hits.map(h =>
+    `<span class="legend-chip" onclick="scrollToClaim(${h.idx})">
+      <span class="legend-dot" style="background:${HL_COLOURS[h.idx % HL_COLOURS.length]}"></span>
+      Claim ${h.idx + 1}
+    </span>`
+  ).join('');
+
+  return `<div class="article-body">${html}</div>
+    ${legend ? `<div class="highlight-legend">${legend}</div>` : ''}`;
 }
 
 // ── Degree of Fakeness gauge ──
@@ -429,6 +471,14 @@ window.toggleClaim = function(i) {
   item.classList.toggle('open', !isOpen);
 };
 
+window.scrollToClaim = function(i) {
+  const item = document.getElementById(`claim-${i}`);
+  if (!item) return;
+  const body = item.querySelector('.claim-body');
+  if (body.hidden) { body.hidden = false; item.classList.add('open'); }
+  item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
 // ─────────────────────────────────────────────
 // Animate score bars
 // ─────────────────────────────────────────────
@@ -577,105 +627,166 @@ if (new URLSearchParams(location.search).get('demo') === '1') {
 function loadDemo() {
   showResults({
     content: {
-      url:        'https://example.com/news/demo-article',
-      title:      'Scientists Discover Water on Mars — Evidence of Ancient Life?',
-      publisher:  'Example News',
-      date:       '2026-03-05',
-      author:     'Jane Demo',
-      section:    'Science',
+      url:        'https://example.com/health/coffee-longevity',
+      title:      'Drink 5 Cups of Coffee a Day and Live 15 Years Longer, Scientists Say',
+      publisher:  'Daily Health Buzz',
+      date:       '2026-03-01',
+      author:     'Sarah Wellman',
+      section:    'Health',
       is_opinion: false,
+      body:
+`Researchers from Boston University published findings this week claiming that drinking five cups of coffee per day can extend a person's lifespan by up to 15 years. The study, which tracked just 500 volunteers over six months, has quickly gone viral on social media, with health influencers urging their followers to increase their daily coffee intake immediately.
+
+"Coffee completely prevents Alzheimer's disease in regular drinkers," the lead researcher was quoted as saying at a press conference on Monday. The sweeping claim has been welcomed by millions of coffee lovers worldwide, though several independent neurologists have expressed significant scepticism.
+
+Adding to the excitement, the article states that the World Health Organization recommends coffee as a daily health supplement — a statement that does not appear in any official WHO publication or guideline.
+
+The piece further argues that caffeine boosts metabolism by up to 50%, leading to significant weight loss in regular consumers, a figure that sharply contradicts the findings of most peer-reviewed nutrition research, which places the effect far closer to 3–11%.
+
+On a more credible note, it is well established that a single cup of coffee contains more antioxidants than a serving of blueberries, a fact that has been cited in legitimate nutritional literature.
+
+Coffee is indeed one of the most widely consumed beverages on earth. Over 2 billion cups of coffee are consumed globally every day, making it a cornerstone of daily life for people across every continent.`,
     },
     publisher_credibility: {
-      score:  62,
-      rating: 'mixed',
-      summary: 'Example News has a mixed record — generally accurate on science topics but has published sensationalised headlines.',
-      bias:   'center_left',
-      known_issues: ['Occasional headline exaggeration', 'Limited corrections policy'],
-      fact_checker_ratings: ['PolitiFact: Mostly True (avg)', 'Snopes: Mixture'],
+      score:  34,
+      rating: 'low_credibility',
+      summary: 'Daily Health Buzz frequently publishes exaggerated health claims with little citation of peer-reviewed sources. Multiple fact-checkers have flagged past articles.',
+      bias:   'center',
+      known_issues: [
+        'History of sensationalised health headlines',
+        'Rarely links to primary research',
+        'Two prior corrections issued for false medical claims',
+      ],
+      fact_checker_ratings: ['Snopes: False (3 articles)', 'Full Fact: Misleading'],
     },
     content_credibility: {
-      score:  58,
-      rating: 'mixed',
-      summary: 'The article makes several accurate claims about recent Mars research but overstates conclusions not yet peer-reviewed.',
-      total_claims_found: 6,
-      claims_true: 2,
+      score:  28,
+      rating: 'not_credible',
+      summary: 'The article makes two well-supported claims but surrounds them with three false or misleading statements that dramatically overstate coffee\'s health effects.',
+      total_claims_found: 5,
+      claims_true:        1,
       claims_mostly_true: 1,
-      claims_misleading:  2,
-      claims_unverified:  1,
-      claims_false:       0,
+      claims_misleading:  1,
+      claims_unverified:  0,
+      claims_mostly_false: 0,
+      claims_false:        2,
       government_source_only_flag: false,
       writing_quality: {
-        sensationalism:    true,
-        named_sources:     true,
-        anonymous_sources: false,
+        sensationalism:     true,
+        named_sources:      false,
+        anonymous_sources:  true,
         emotional_language: true,
-        hedging_language:  false,
+        hedging_language:   false,
       },
     },
     claims: [
       {
         claim_id: 1,
-        claim_summary: 'NASA confirmed liquid water beneath the Martian south pole.',
-        extract: '"NASA scientists have confirmed liquid water beneath the Martian south pole in a landmark 2026 study."',
-        verdict: 'mostly_true',
-        overall_reason: 'Radar data strongly suggests subsurface liquid water, but "confirmed" overstates current scientific consensus.',
+        claim_summary: 'Drinking 5 cups of coffee daily extends lifespan by up to 15 years.',
+        extract: 'drinking five cups of coffee per day can extend a person\'s lifespan by up to 15 years',
+        verdict: 'false',
+        overall_reason: 'No peer-reviewed study supports a 15-year lifespan extension from coffee. Observational studies show modest associations with longevity, not causation. A 6-month study of 500 people cannot establish such a conclusion.',
         government_source_only: false,
         sources: [
-          { name: 'NASA Climate', url: 'https://climate.nasa.gov', type: 'government', is_independent: true },
-          { name: 'Nature',       url: 'https://www.nature.com',   type: 'journal',    is_independent: true },
+          { name: 'Harvard T.H. Chan School of Public Health', url: 'https://www.hsph.harvard.edu', type: 'academic', is_independent: true },
+          { name: 'BMJ — Coffee and Mortality Meta-analysis',  url: 'https://www.bmj.com',          type: 'journal',  is_independent: true },
         ],
         evidence: [
           {
-            source_id: 'a1', source_name: 'NASA Climate', source_url: 'https://climate.nasa.gov',
-            snippet: 'Radar observations reveal a bright subsurface reflection beneath the Martian south polar layered deposits consistent with liquid water.',
-            supports_claim: true,
-            judgement_reason: 'Directly corroborates the presence of subsurface liquid water.',
+            source_id: '1a', source_name: 'Harvard Public Health', source_url: 'https://www.hsph.harvard.edu',
+            snippet: 'Observational studies suggest moderate coffee consumption is associated with a small reduction in all-cause mortality, but causation has not been established.',
+            supports_claim: false,
+            judgement_reason: 'A "small association" is a far cry from extending life by 15 years.',
           },
           {
-            source_id: 'a2', source_name: 'Nature', source_url: 'https://www.nature.com',
-            snippet: 'While radar data is suggestive, alternative explanations — including CO2 ice — cannot yet be ruled out.',
+            source_id: '1b', source_name: 'BMJ Meta-analysis', source_url: 'https://www.bmj.com',
+            snippet: 'The largest meta-analysis to date found no study that reported a lifespan benefit of more than 1–2 years from any dietary habit.',
             supports_claim: false,
-            judgement_reason: 'Scientific consensus does not yet support the word "confirmed".',
+            judgement_reason: 'Directly refutes the 15-year claim.',
           },
         ],
       },
       {
         claim_id: 2,
-        claim_summary: 'The discovery is direct evidence of ancient microbial life.',
-        extract: '"This discovery is direct evidence that ancient microbial life once existed on Mars."',
-        verdict: 'misleading',
-        overall_reason: 'Water is a prerequisite for life, but its presence is not evidence of life itself.',
+        claim_summary: 'Coffee completely prevents Alzheimer\'s disease in regular drinkers.',
+        extract: 'Coffee completely prevents Alzheimer\'s disease in regular drinkers',
+        verdict: 'false',
+        overall_reason: 'Some studies suggest caffeine may reduce the risk of Alzheimer\'s, but no evidence supports complete prevention. The word "completely" makes this claim false.',
         government_source_only: false,
         sources: [
-          { name: 'Reuters',  url: 'https://www.reuters.com',  type: 'news', is_independent: true },
-          { name: 'BBC News', url: 'https://www.bbc.com/news', type: 'news', is_independent: true },
+          { name: 'Alzheimer\'s Society',     url: 'https://www.alzheimers.org.uk', type: 'charity',  is_independent: true },
+          { name: 'Journal of Alzheimer\'s Disease', url: 'https://www.j-alz.com', type: 'journal',  is_independent: true },
         ],
         evidence: [
           {
-            source_id: 'b1', source_name: 'Reuters', source_url: 'https://www.reuters.com',
-            snippet: 'No biological markers or organic compounds were detected in the latest data release.',
+            source_id: '2a', source_name: "Alzheimer's Society", source_url: 'https://www.alzheimers.org.uk',
+            snippet: 'While some studies suggest a modest protective effect of caffeine, the evidence is inconsistent and far from conclusive. Coffee cannot be considered preventive.',
             supports_claim: false,
-            judgement_reason: 'Absence of biosignatures contradicts the "direct evidence of life" framing.',
+            judgement_reason: 'Leading Alzheimer\'s charity explicitly contradicts the "completely prevents" framing.',
           },
         ],
       },
       {
         claim_id: 3,
-        claim_summary: 'ESA has approved a crewed Mars mission for 2031.',
-        extract: '"The European Space Agency has approved a crewed mission to Mars, set for 2031."',
+        claim_summary: 'The WHO recommends coffee as a daily health supplement.',
+        extract: 'the World Health Organization recommends coffee as a daily health supplement',
         verdict: 'false',
-        overall_reason: 'ESA has discussed long-term human exploration plans but has approved no crewed Mars mission as of early 2026.',
-        government_source_only: false,
+        overall_reason: 'The WHO has never issued guidance recommending coffee as a health supplement. In 2016 the WHO reclassified coffee as "not classifiable as a carcinogen" but issued no positive recommendation.',
+        government_source_only: true,
         sources: [
-          { name: 'ESA Official', url: 'https://www.esa.int',        type: 'government', is_independent: true },
-          { name: 'Reuters',      url: 'https://www.reuters.com',    type: 'news',       is_independent: true },
+          { name: 'WHO Official Guidelines', url: 'https://www.who.int', type: 'government', is_independent: true },
         ],
         evidence: [
           {
-            source_id: 'c1', source_name: 'ESA Official', source_url: 'https://www.esa.int',
-            snippet: 'ESA has no currently approved programme for a crewed Mars landing.',
+            source_id: '3a', source_name: 'WHO Official Guidelines', source_url: 'https://www.who.int',
+            snippet: 'The World Health Organization has not issued any recommendation for coffee as a dietary supplement or health intervention.',
             supports_claim: false,
-            judgement_reason: 'Direct denial from the named organisation.',
+            judgement_reason: 'The WHO directly contradicts this claim.',
+          },
+        ],
+      },
+      {
+        claim_id: 4,
+        claim_summary: 'Caffeine boosts metabolism by up to 50%, causing significant weight loss.',
+        extract: 'caffeine boosts metabolism by up to 50%, leading to significant weight loss in regular consumers',
+        verdict: 'misleading',
+        overall_reason: 'Caffeine does temporarily boost metabolic rate, but the effect is 3–11%, not 50%. Any associated weight loss is modest and diminishes with habitual use.',
+        government_source_only: false,
+        sources: [
+          { name: 'American Journal of Clinical Nutrition', url: 'https://academic.oup.com/ajcn', type: 'journal', is_independent: true },
+          { name: 'Mayo Clinic',                            url: 'https://www.mayoclinic.org',    type: 'medical', is_independent: true },
+        ],
+        evidence: [
+          {
+            source_id: '4a', source_name: 'American Journal of Clinical Nutrition', source_url: 'https://academic.oup.com/ajcn',
+            snippet: 'Caffeine increases resting metabolic rate by approximately 3–11% in a dose-dependent manner.',
+            supports_claim: false,
+            judgement_reason: 'The real figure is far lower than the 50% claimed in the article.',
+          },
+          {
+            source_id: '4b', source_name: 'Mayo Clinic', source_url: 'https://www.mayoclinic.org',
+            snippet: 'Caffeine may slightly boost metabolism and fat burning, but any effect is small and short-lived in regular coffee drinkers as tolerance develops.',
+            supports_claim: false,
+            judgement_reason: 'Contradicts the "significant weight loss" framing.',
+          },
+        ],
+      },
+      {
+        claim_id: 5,
+        claim_summary: 'One cup of coffee contains more antioxidants than a serving of blueberries.',
+        extract: 'a single cup of coffee contains more antioxidants than a serving of blueberries',
+        verdict: 'mostly_true',
+        overall_reason: 'Multiple nutritional studies confirm coffee is one of the largest single sources of antioxidants in the Western diet. The comparison to blueberries is broadly supported, though it depends on the measurement method.',
+        government_source_only: false,
+        sources: [
+          { name: 'Journal of Nutrition — Antioxidant Study', url: 'https://academic.oup.com/jn', type: 'journal', is_independent: true },
+        ],
+        evidence: [
+          {
+            source_id: '5a', source_name: 'Journal of Nutrition', source_url: 'https://academic.oup.com/jn',
+            snippet: 'Brewed coffee was found to contain higher total antioxidant activity per serving than many fruits and vegetables, including blueberries, when measured by FRAP assay.',
+            supports_claim: true,
+            judgement_reason: 'Directly supports the antioxidant comparison.',
           },
         ],
       },
