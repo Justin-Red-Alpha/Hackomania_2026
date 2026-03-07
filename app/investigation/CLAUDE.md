@@ -43,13 +43,13 @@ Receives `IngestionResult` from the Ingestion module (defined in `app/models/sch
 Produce an `InvestigationResult` Pydantic model and add it to `app/models/schemas.py`.
 
 ```python
-class Source(BaseModel):
+class ClaimSource(BaseModel):
     name: str
     url: str
     source_type: str              # e.g. "news", "government", "academic"
     is_independent: bool
     is_primary_source: bool       # True = own data/analysis; False = relays claim from elsewhere
-    hop_depth: int = 0            # 0 = direct search result; 1+ = citation chased from another source
+    hop_depth:         int            = 0      # 0 = direct result; 1+ = citation chased
     s3_url: Optional[str] = None  # S3 link to archived HTML copy of source page
     extracted_text: Optional[str] = None  # full text extracted from source page
 
@@ -57,10 +57,10 @@ class Claim(BaseModel):
     claim_id: int
     claim_summary: str
     extract: str          # direct quote of the claim or statement from the article
-    verdict: Literal["true", "likely_true", "unverified", "likely_false", "false"]
+    verdict: ClaimVerdict  # true | mostly_true | misleading | unverified | mostly_false | false
     reason: str
     government_source_only: bool
-    sources: List[Source]
+    sources: List[ClaimSource]
 
 class PublisherCredibility(BaseModel):
     score: int            # 0-100
