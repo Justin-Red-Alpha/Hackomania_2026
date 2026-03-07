@@ -112,3 +112,12 @@ tests/
 - **No emojis.** Keep all output, UI, and code comments professional and emoji-free.
 - **Commit and push regularly** to https://github.com/Justin-Red-Alpha/Hackomania_2026.git
   after each meaningful unit of work.
+- **Use Server-Sent Events (SSE)** for the `/api/v1/analyse` endpoint so that intermediate pipeline
+  events (agent start, agent complete, partial results) are streamed to the frontend in real time.
+  All pipeline stages must emit SSE events; the frontend must consume and display them progressively.
+- **Log verbosely.** Every pipeline stage, tool call, agent activation, and SSE event emitted must
+  be logged at `DEBUG` level using structured logging so that logs can be parsed for both debugging
+  and real-time event notification. Include timestamps, stage name, and relevant identifiers.
+- **Maintain `CHANGELOG.md`** at the repo root. Record every significant change (new feature, schema
+  change, renamed field, new table, breaking change) with the date and your name so all team members
+  stay informed of what has changed.
