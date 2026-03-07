@@ -13,7 +13,7 @@
 
 ## Technology
 
-- `tavily-extract` (Tavily MCP) - scrape and clean article text from URLs
+- `trafilatura` - fetch and extract article text from URLs
 - Claude `claude-sonnet-4-6` - extract metadata, detect language, translate to English
 - `aioboto3` - async upload of content files to AWS S3
 
@@ -23,7 +23,7 @@ Either a URL string or a direct file upload:
 
 | Format     | Parser                         |
 | ---------- | ------------------------------ |
-| URL        | `tavily-extract`               |
+| URL        | `trafilatura`                  |
 | PDF        | `pypdf2` or `pdfminer`         |
 | DOCX       | `python-docx`                  |
 | HTML       | `beautifulsoup4`               |
@@ -75,7 +75,7 @@ class IngestionResult(BaseModel):
 ## Key Decisions
 
 ### Input handling
-- For URL input: use `tavily-extract` to scrape; save the raw HTML response to S3
+- For URL input: use `trafilatura` to fetch and extract text; save the raw HTML to S3
 - For file input: save the original file bytes directly to S3
 - For plain text input: no S3 upload (no file to store; `s3_url` remains `None`)
 - Set `content.s3_url` to the resulting S3 object URL after upload

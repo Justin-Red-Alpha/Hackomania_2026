@@ -67,7 +67,10 @@ def _parse_raw_text(raw_content: bytes | str, input_type: InputType) -> str:
         return _parse_pdf(raw_bytes)
     if input_type == InputType.docx:
         return _parse_docx(raw_bytes)
-    if input_type in (InputType.html, InputType.url):
+    if input_type == InputType.url:
+        # Text was already extracted by trafilatura in ingestion_agent; pass through unchanged.
+        return raw_content if isinstance(raw_content, str) else raw_bytes.decode("utf-8", errors="replace")
+    if input_type == InputType.html:
         return _parse_html(raw_bytes)
     if input_type == InputType.md:
         return _parse_md(raw_bytes)

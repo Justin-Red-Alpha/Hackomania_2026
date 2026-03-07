@@ -5,6 +5,19 @@ Format: `YYYY-MM-DD | Author | Description`
 
 ---
 
+## 2026-03-07 | Claude | Switch web content extraction from tavily-extract to trafilatura
+
+- Replaced `AsyncTavilyClient.extract()` in `ingestion_agent.py` with `trafilatura.fetch_url()` +
+  `trafilatura.extract()`; raw HTML is still archived to S3, extracted text is passed directly to
+  `extraction_agent.extract()` (no BeautifulSoup re-parsing for URL inputs)
+- Replaced `tavily.extract()` in `search_agent._process_url()` with the same trafilatura approach;
+  removed the `tavily` parameter from `_process_url()` since it is now only used for search
+- Updated `extraction_agent._parse_raw_text()`: `InputType.url` content now passes through as-is
+  (trafilatura already extracted it); `InputType.html` file uploads still use BeautifulSoup
+- Added `trafilatura>=1.12.0` to `requirements.txt`
+- Updated `app/ingestion/CLAUDE.md`, `app/investigation/CLAUDE.md`, and root `CLAUDE.md` to reflect
+  the new extraction strategy
+
 ## 2026-03-07 | Claude | Investigation module implementation
 
 - Implemented `app/investigation/` module (Step 4) with all five files:

@@ -17,7 +17,7 @@
 
 - Claude `claude-sonnet-4-6` - identify claims in text, evaluate source evidence
 - `tavily-search` (Tavily MCP) - find sources per claim
-- `tavily-extract` (Tavily MCP) - pull full content from source pages
+- `trafilatura` - fetch and extract full content from source pages
 - `aioboto3` - async upload of source HTML pages to AWS S3
 - **GPTZero API** (`fakeness_agent.py` only) - AI-generated text detection; no Tavily/Claude equivalent. Add `GPTZERO_API_KEY` to `.env`. Endpoint: `https://api.gptzero.me/v2/predict/text`
 
@@ -108,7 +108,7 @@ than accepting mere mentions as evidence.
 ```
 tavily-search(claim)
   for each result URL (parallel via asyncio.gather):
-    tavily-extract(url)
+    trafilatura(url)
       Claude classifies: primary | secondary-with-citation | mention-only
         primary                  -> keep (is_primary_source=True, hop_depth=current)
         secondary-with-citation  -> if hop_depth < MAX_HOP_DEPTH:

@@ -86,30 +86,36 @@ async def _upload_to_s3(content: bytes, extension: str) -> str:
     return s3_url
 
 
-async def _scrape_url(url: str) -> str:
-    """Use Tavily extract to scrape and clean article text from a URL."""
-    import os
-    from tavily import AsyncTavilyClient
+async def _scrape_url(url: str) -> tuple[str, str]:
+    """Fetch and extract article text from a URL using trafilatura.
 
-    api_key = os.environ["TAVILY_API_KEY"]
+    Returns:
+        A tuple of (raw_html, extracted_text). raw_html is archived to S3;
+        extracted_text is the clean article body returned by trafilatura.
+    """
+    import asyncio
+    import trafilatura
+
     logger.debug(
-        "ingestion_agent: scraping URL with Tavily",
-        extra={"stage": "tavily_extract", "url": url},
+        "ingestion_agent: scraping URL with trafilatura",
+        extra={"stage": "trafilatura_extract", "url": url},
     )
 
-    client = AsyncTavilyClient(api_key=api_key)
-    response = await client.extract(urls=[url])
+    raw_html: str | None = await asyncio.to_thread(trafilatura.fetch_url, url)
+    if not raw_html:
+        raise ValueError(f"trafilatura could not download URL: {url}")
 
-    results = response.get("results", [])
-    if not results:
-        raise ValueError(f"Tavily extract returned no results for URL: {url}")
-
-    raw_content = results[0].get("raw_content", "")
-    logger.debug(
-        "ingestion_agent: Tavily extract complete",
-        extra={"stage": "tavily_extract", "url": url, "content_length": len(raw_content)},
+    extracted_text: str | None = await asyncio.to_thread(
+        trafilatura.extract, raw_html, include_comments=False, include_tables=True
     )
-    return raw_content
+    if not extracted_text:
+        raise ValueError(f"trafilatura could not extract text from URL: {url}")
+
+    logger.debug(
+        "ingestion_agent: trafilatura extraction complete",
+        extra={"stage": "trafilatura_extract", "url": url, "content_length": len(extracted_text)},
+    )
+    return raw_html, extracted_text
 
 
 async def run_ingestion(
@@ -144,8 +150,8 @@ async def run_ingestion(
     s3_url: Optional[str] = None
 
     if url is not None:
-        # Scrape URL with Tavily, upload raw HTML to S3
-        raw_html = await _scrape_url(url)
+        # Fetch URL with trafilatura; upload raw HTML to S3 for archiving
+        raw_html, extracted_text = await _scrape_url(url)
         raw_bytes = raw_html.encode("utf-8")
 
         try:
@@ -158,7 +164,7 @@ async def run_ingestion(
             )
 
         result = await extract(
-            raw_content=raw_bytes,
+            raw_content=extracted_text,
             input_type=InputType.url,
             source_url=url,
             s3_url=s3_url,

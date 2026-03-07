@@ -94,7 +94,8 @@ tests/
 ## Technology Stack
 
 - **Claude** (`claude-sonnet-4-6`) - claim identification and scoring
-- **Tavily MCP** - article scraping (`tavily-extract`) and source search (`tavily-search`)
+- **Tavily MCP** - source search (`tavily-search`)
+- **trafilatura** - article fetching and text extraction (URL inputs and source pages)
 - **FastAPI** - web framework
 - **Pydantic** - data validation and shared schemas
 
