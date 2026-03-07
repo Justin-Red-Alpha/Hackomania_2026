@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 
 import anthropic
 from dotenv import load_dotenv
@@ -37,12 +38,12 @@ Return a JSON array of claim objects (up to 10 most significant claims):
   {
     "claim_id": 1,
     "claim_summary": "Brief one-sentence summary of the claim",
-    "extract": "Direct verbatim quote from the article that contains the claim",
+    "extract": "Direct verbatim quote from the article; replace any double-quote characters in the quote with single quotes",
     "verdict": "unverified",
     "reason": "Pending investigation"
   }
 ]
-Return ONLY the JSON array. No markdown fences, no explanation."""
+Return ONLY the JSON array. No markdown fences, no surrounding text, no explanation."""
 
 
 async def _extract_claims(client: anthropic.AsyncAnthropic, text: str) -> list[Claim]:
@@ -62,12 +63,23 @@ async def _extract_claims(client: anthropic.AsyncAnthropic, text: str) -> list[C
         "investigator: received claims from Claude",
         extra={"stage": "claim_extraction", "raw_preview": raw[:200]},
     )
+    # Strip markdown code fences if present
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+    # Extract outermost JSON array boundary
+    start, end = raw.find("["), raw.rfind("]")
+    if start != -1 and end > start:
+        raw = raw[start : end + 1]
+    # Fix unescaped parenthetical abbreviations e.g. ("HC") -> ('HC')
+    raw = re.sub(r'\("([^"\n]{1,20})"\)', r"('\1')", raw)
+
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
         logger.error(
-            "investigator: failed to parse claims JSON",
-            extra={"stage": "claim_extraction", "raw": raw[:500]},
+            "investigator: failed to parse claims JSON — raw: %r",
+            raw[:500],
+            extra={"stage": "claim_extraction"},
         )
         return []
     claims: list[Claim] = []
