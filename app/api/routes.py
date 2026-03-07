@@ -14,7 +14,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 
 from app.models.schemas import AnalyseRequest, JudgementResult
 
@@ -116,5 +116,81 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
         logger.debug("Database module not yet available — skipping store")
     except Exception as exc:
         logger.warning("Failed to cache result: %s", exc)
+
+    return result
+
+
+@router.post("/analyse/upload", response_model=JudgementResult)
+async def analyse_file(file: UploadFile = File(...)) -> JudgementResult:
+    """
+    File upload analysis endpoint.
+
+    Accepts a PDF, DOCX, HTML, MD, RTF, or image file and runs the full
+    fact-checking pipeline, returning a JudgementResult.
+    """
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    tavily_key    = os.environ.get("TAVILY_API_KEY", "")
+
+    if not anthropic_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY is not configured on the server.")
+    if not tavily_key:
+        raise HTTPException(status_code=500, detail="TAVILY_API_KEY is not configured on the server.")
+
+    logger.info("Analyse file upload request received — filename=%s", file.filename)
+
+    # ── Step 1–3: Ingestion ─────────────────────────────────────────────────
+    try:
+        from app.ingestion.ingestion_agent import run_ingestion
+
+        content = await run_ingestion(file=file)
+    except ImportError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Ingestion pipeline is not yet implemented: {exc}",
+        )
+    except Exception as exc:
+        logger.exception("Ingestion failed for uploaded file %s", file.filename)
+        raise HTTPException(status_code=500, detail=f"Ingestion error: {exc}")
+
+    # ── Step 4: Investigation ───────────────────────────────────────────────
+    try:
+        from app.investigation.investigator import run_investigation
+
+        investigation = await run_investigation(ingestion_result=content)
+    except ImportError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Investigation pipeline is not yet implemented: {exc}",
+        )
+    except Exception as exc:
+        logger.exception("Investigation failed for uploaded file %s", file.filename)
+        raise HTTPException(status_code=500, detail=f"Investigation error: {exc}")
+
+    # ── Step 5: Judgement ───────────────────────────────────────────────────
+    try:
+        from app.judgement.judgement import judge
+
+        result: JudgementResult = await judge(
+            ingestion=content,
+            investigation=investigation,
+            anthropic_api_key=anthropic_key,
+        )
+    except ImportError:
+        raise HTTPException(
+            status_code=503,
+            detail="Judgement pipeline is not yet implemented.",
+        )
+    except Exception as exc:
+        logger.exception("Judgement failed for uploaded file %s", file.filename)
+        raise HTTPException(status_code=500, detail=f"Judgement error: {exc}")
+
+    # ── Step 6: Store in DB ─────────────────────────────────────────────────
+    try:
+        from app.database.db import save_analysis
+        await save_analysis(None, result)
+    except ImportError:
+        logger.debug("Database module not yet available — skipping store")
+    except Exception as exc:
+        logger.warning("Failed to cache result for uploaded file: %s", exc)
 
     return result
