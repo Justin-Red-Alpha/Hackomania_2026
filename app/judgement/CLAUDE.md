@@ -49,7 +49,7 @@ class ClaimEvidence(BaseModel):
     source_id: str            # UUID matching sources.id in the database
     source_name: str          # denormalised for convenience
     source_url: str           # denormalised for convenience
-    snippet: str              # specific excerpt from source's extracted_text that relates to claim
+    snippet: str              # specific excerpt from source's extracted text that relates to claim
     supports_claim: bool      # True = this evidence supports the claim; False = contradicts it
     judgement_reason: str     # explanation of why this snippet affects the claim verdict
 
