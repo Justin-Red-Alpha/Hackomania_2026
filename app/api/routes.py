@@ -35,6 +35,7 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
     """
     article_url   = str(request.articleUrl) if request.articleUrl else None
     article_text  = request.articleText or None
+    no_cache      = request.noCache
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
     tavily_key    = os.environ.get("TAVILY_API_KEY", "")
 
@@ -43,11 +44,11 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
     if not tavily_key:
         raise HTTPException(status_code=500, detail="TAVILY_API_KEY is not configured on the server.")
 
-    logger.info("Analyse request received — url=%s text=%s",
-                article_url, bool(article_text))
+    logger.info("Analyse request received — url=%s text=%s no_cache=%s",
+                article_url, bool(article_text), no_cache)
 
     # ── Step 0: DB cache lookup (URL only — text has no stable cache key) ───
-    if article_url:
+    if article_url and not no_cache:
         try:
             from app.database.db import get_analysis
             cached = await get_analysis(article_url)
