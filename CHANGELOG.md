@@ -5,6 +5,20 @@ Format: `YYYY-MM-DD | Author | Description`
 
 ---
 
+## 2026-03-07 | Justin | Ingestion pipeline implementation
+
+- Implemented ingestion pipeline Steps 1-3:
+  - `app/ingestion/ingestion_agent.py`: entry point accepting URL (Tavily extract), plain text, or
+    file upload; uploads raw content to S3 (`content/<YYYY-MM-DD>/<uuid>.<ext>`)
+  - `app/ingestion/extraction_agent.py`: parses PDF/DOCX/HTML/MD/RTF/image via format-specific
+    libraries; calls Claude to extract metadata (title, publisher, author, date, section,
+    is_opinion) and detect language; translates non-English content to English
+  - `app/ingestion/summariser.py`: summarises English text via Claude when token_count > 4000;
+    original_text is never summarised
+- Added `app/models/schemas.py` with `InputType`, `ContentMetadata`, and `IngestionResult` Pydantic models
+- Added `requirements.txt` with all project dependencies
+- Added `app/__init__.py`, `app/models/__init__.py`, `app/ingestion/__init__.py` package init files
+
 ## 2026-03-07
 
 - Moved `original_language` from `IngestionResult` into `ContentMetadata`; field now lives
