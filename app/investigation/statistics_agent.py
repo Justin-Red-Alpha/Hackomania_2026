@@ -67,6 +67,11 @@ async def _check_statistic(
         messages=[{"role": "user", "content": f"Claim: {claim.claim_summary}\nExtract: {claim.extract}"}],
     )
     raw = filter_response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
     try:
         filter_data = json.loads(raw)
     except json.JSONDecodeError:
@@ -130,6 +135,13 @@ async def _check_statistic(
             messages=[{"role": "user", "content": verdict_prompt}],
         )
         raw_verdict = verdict_response.content[0].text.strip()
+        if raw_verdict.startswith("```"):
+            raw_verdict = raw_verdict.split("```")[1]
+            if raw_verdict.startswith("json"):
+                raw_verdict = raw_verdict[4:]
+            raw_verdict = raw_verdict.strip()
+        if not raw_verdict:
+            raise ValueError("empty response from Claude")
         verdict_data = json.loads(raw_verdict)
         try:
             verdict = ClaimVerdict(verdict_data.get("verdict", "unverified"))

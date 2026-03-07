@@ -131,6 +131,11 @@ async def _classify_source(
         messages=[{"role": "user", "content": prompt}],
     )
     raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
     try:
         result = json.loads(raw)
         logger.debug(
@@ -503,6 +508,13 @@ async def _investigate_claim(
                 messages=[{"role": "user", "content": verdict_prompt}],
             )
             raw_v = verdict_resp.content[0].text.strip()
+            if raw_v.startswith("```"):
+                raw_v = raw_v.split("```")[1]
+                if raw_v.startswith("json"):
+                    raw_v = raw_v[4:]
+                raw_v = raw_v.strip()
+            if not raw_v:
+                raise ValueError("empty response from Claude")
             verdict_data = json.loads(raw_v)
             try:
                 verdict = ClaimVerdict(verdict_data.get("verdict", "unverified"))

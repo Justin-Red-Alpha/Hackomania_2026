@@ -239,9 +239,9 @@ async def get_analysis(url: str) -> Optional[JudgementResult]:
     return judgement
 
 
-async def save_analysis(result: JudgementResult) -> None:
+async def save_analysis(url: Optional[str], result: JudgementResult) -> None:
     """Persist a completed JudgementResult plus all evidence snippets."""
-    source_url = result.content.url
+    source_url = url or result.content.url
     analysis_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     logger.debug(
