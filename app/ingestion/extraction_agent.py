@@ -164,24 +164,80 @@ async def _extract_metadata(client: anthropic.AsyncAnthropic, text: str) -> dict
         return {}
 
 
-async def _translate_to_english(client: anthropic.AsyncAnthropic, text: str) -> str:
-    """Call Claude to translate article text to English."""
-    logger.debug(
-        "extraction_agent: calling Claude for translation",
-        extra={"stage": "translation", "text_length": len(text)},
-    )
+# Max characters per translation chunk (~5000 tokens input; leaves headroom for 8192-token output)
+_TRANSLATE_CHUNK_CHARS = 20_000
 
+
+def _split_into_chunks(text: str, max_chars: int) -> list[str]:
+    """Split text into chunks at paragraph boundaries without exceeding max_chars."""
+    paragraphs = text.split("\n\n")
+    chunks: list[str] = []
+    current: list[str] = []
+    current_len = 0
+
+    for para in paragraphs:
+        para_len = len(para) + 2  # account for the "\n\n" separator
+        if current_len + para_len > max_chars and current:
+            chunks.append("\n\n".join(current))
+            current = [para]
+            current_len = para_len
+        else:
+            current.append(para)
+            current_len += para_len
+
+    if current:
+        chunks.append("\n\n".join(current))
+
+    return chunks
+
+
+async def _translate_chunk(client: anthropic.AsyncAnthropic, text: str) -> str:
+    """Translate a single chunk of text to English."""
     response = await client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=8192,
         system=_TRANSLATE_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": text}],
     )
+    return response.content[0].text.strip()
 
-    translated = response.content[0].text.strip()
+
+async def _translate_to_english(client: anthropic.AsyncAnthropic, text: str) -> str:
+    """Translate article text to English, chunking long texts to stay within output token limits."""
     logger.debug(
-        "extraction_agent: translation complete",
-        extra={"stage": "translation", "translated_length": len(translated)},
+        "extraction_agent: calling Claude for translation",
+        extra={"stage": "translation", "text_length": len(text)},
+    )
+
+    if len(text) <= _TRANSLATE_CHUNK_CHARS:
+        translated = await _translate_chunk(client, text)
+        logger.debug(
+            "extraction_agent: translation complete",
+            extra={"stage": "translation", "translated_length": len(translated)},
+        )
+        return translated
+
+    chunks = _split_into_chunks(text, _TRANSLATE_CHUNK_CHARS)
+    logger.debug(
+        "extraction_agent: text too long for single translation, splitting into chunks",
+        extra={"stage": "translation", "chunk_count": len(chunks), "text_length": len(text)},
+    )
+    translated_chunks: list[str] = []
+    for i, chunk in enumerate(chunks):
+        logger.debug(
+            "extraction_agent: translating chunk",
+            extra={"stage": "translation", "chunk_index": i + 1, "total_chunks": len(chunks)},
+        )
+        translated_chunks.append(await _translate_chunk(client, chunk))
+
+    translated = "\n\n".join(translated_chunks)
+    logger.debug(
+        "extraction_agent: chunked translation complete",
+        extra={
+            "stage": "translation",
+            "chunk_count": len(chunks),
+            "translated_length": len(translated),
+        },
     )
     return translated
 
