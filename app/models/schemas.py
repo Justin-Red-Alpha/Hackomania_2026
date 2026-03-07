@@ -80,6 +80,7 @@ class AnalyseRequest(BaseModel):
 
     articleUrl:  Optional[HttpUrl] = None
     articleText: Optional[str]     = None
+    noCache:     bool              = False  # set True to bypass DB cache and re-run pipeline
 
     @model_validator(mode="after")
     def require_one_input(self) -> "AnalyseRequest":

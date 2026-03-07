@@ -151,9 +151,10 @@ HOP DEPTH: {source.hop_depth}{hop_note}
 SOURCE TEXT:
 {source.extracted_text[:8000]}
 
-Respond with a JSON object only (no markdown):
+Respond with a JSON object only. No markdown, no code fences, no surrounding text.
+Escape any double-quote characters inside string values with \".
 {{
-  "snippet": "<verbatim excerpt from the source text that most directly supports or contradicts the claim>",
+  "snippet": "<verbatim excerpt from the source text; replace any double-quote characters in the excerpt with single quotes>",
   "supports_claim": <true if the snippet supports the claim, false if it contradicts>,
   "judgement_reason": "<brief explanation of why this snippet affects the verdict, mention hop_depth weakness if hop_depth > 1>"
 }}"""
@@ -172,14 +173,17 @@ Respond with a JSON object only (no markdown):
     start, end = raw.find("{"), raw.rfind("}")
     if start != -1 and end > start:
         raw = raw[start : end + 1]
+    # Fix unescaped parenthetical abbreviations e.g. ("HC") -> ('HC')
+    raw = re.sub(r'\("([^"\n]{1,20})"\)', r"('\1')", raw)
 
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
         logger.warning(
-            "judgement: failed to parse evidence JSON for source %s — skipping",
+            "judgement: failed to parse evidence JSON for source %s — raw: %r — skipping",
             source.url,
-            extra={"stage": "identify_evidence", "raw": raw[:200]},
+            raw[:400],
+            extra={"stage": "identify_evidence"},
         )
         return None
     source_id = source.source_id or source.url
