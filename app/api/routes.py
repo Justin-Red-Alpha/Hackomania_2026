@@ -61,17 +61,16 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
 
     # ── Step 1–3: Ingestion ─────────────────────────────────────────────────
     try:
-        from app.ingestion.ingestion_agent import ingest
-        from app.ingestion.extraction_agent import extract
-        from app.ingestion.summariser import summarise
+        from app.ingestion.ingestion_agent import run_ingestion
 
-        raw       = await ingest(article_url or article_text, tavily_key)
-        extracted = await extract(raw)
-        content   = await summarise(extracted)
-    except ImportError:
+        content = await run_ingestion(
+            url=article_url,
+            text=article_text,
+        )
+    except ImportError as exc:
         raise HTTPException(
             status_code=503,
-            detail="Ingestion pipeline is not yet implemented.",
+            detail=f"Ingestion pipeline is not yet implemented: {exc}",
         )
     except Exception as exc:
         logger.exception("Ingestion failed for %s", article_url)
@@ -79,17 +78,13 @@ async def analyse_article(request: AnalyseRequest) -> JudgementResult:
 
     # ── Step 4: Investigation ───────────────────────────────────────────────
     try:
-        from app.investigation.investigator import investigate
+        from app.investigation.investigator import run_investigation
 
-        investigation = await investigate(
-            content=content,
-            anthropic_api_key=anthropic_key,
-            tavily_api_key=tavily_key,
-        )
-    except ImportError:
+        investigation = await run_investigation(ingestion_result=content)
+    except ImportError as exc:
         raise HTTPException(
             status_code=503,
-            detail="Investigation pipeline is not yet implemented.",
+            detail=f"Investigation pipeline is not yet implemented: {exc}",
         )
     except Exception as exc:
         logger.exception("Investigation failed for %s", article_url)
