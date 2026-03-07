@@ -109,9 +109,10 @@ For each claim received from InvestigationResult:
 
 3. Use Claude to identify the specific verbatim snippet from each
    deduplicated source that most directly supports or contradicts
-   the claim. Be aware of hop_depth when evaluating snippets —
-   snippets from higher hop_depth sources are inherently weaker
-   evidence and should be noted in judgement_reason.
+   the claim. All sources for a claim are evaluated concurrently
+   via asyncio.gather. Be aware of hop_depth when evaluating
+   snippets — snippets from higher hop_depth sources are inherently
+   weaker evidence and should be noted in judgement_reason.
 
 4. Populate ClaimEvidence for each source with:
    - snippet: verbatim excerpt from extracted_text

@@ -7,6 +7,7 @@ including per-claim evidence extraction via Claude and weighted credibility scor
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -248,16 +249,14 @@ async def judge_claim(
     # 1. Deduplicate sources
     unique_sources = deduplicate_sources(claim.sources)
 
-    # 2. Extract evidence for each source that has text
-    evidence_list: list[ClaimEvidence] = []
-    paywalled_count = 0
-    for source in unique_sources:
-        if source.extracted_text is None:
-            paywalled_count += 1
-            continue
-        ev = await identify_evidence(client, claim.claim_summary, source)
-        if ev is not None:
-            evidence_list.append(ev)
+    # 2. Extract evidence for each source that has text — all in parallel
+    paywalled_count = sum(1 for s in unique_sources if s.extracted_text is None)
+    sources_with_text = [s for s in unique_sources if s.extracted_text is not None]
+
+    evidence_results = await asyncio.gather(
+        *[identify_evidence(client, claim.claim_summary, s) for s in sources_with_text]
+    )
+    evidence_list = [ev for ev in evidence_results if ev is not None]
 
     # 3. Build a lookup from source_url → (source, evidence) for scoring
     evidence_by_url: dict[str, ClaimEvidence] = {
@@ -393,8 +392,6 @@ async def judge(
         )
 
     # ── Judge each claim ──────────────────────────────────────────────────
-    import asyncio
-
     tasks = [judge_claim(client, claim) for claim in claims]
     results: list[tuple[JudgedClaim, float]] = await asyncio.gather(*tasks)
 
