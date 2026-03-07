@@ -8,8 +8,11 @@ including per-claim evidence extraction via Claude and weighted credibility scor
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 import anthropic
 
@@ -165,7 +168,15 @@ Respond with a JSON object only (no markdown):
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
 
-    data = json.loads(raw)
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning(
+            "judgement: failed to parse evidence JSON for source %s — skipping",
+            source.url,
+            extra={"stage": "identify_evidence", "raw": raw[:200]},
+        )
+        return None
     source_id = source.source_id or source.url
     return ClaimEvidence(
         source_id=source_id,
@@ -204,7 +215,14 @@ ARTICLE:
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
 
-    data = json.loads(raw)
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning(
+            "judgement: failed to parse writing quality JSON — returning defaults",
+            extra={"stage": "assess_writing_quality", "raw": raw[:200]},
+        )
+        return WritingQuality()
     return WritingQuality(
         sensationalism=data.get("sensationalism"),
         named_sources=data.get("named_sources"),
