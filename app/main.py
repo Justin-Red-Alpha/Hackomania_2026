@@ -7,6 +7,7 @@ Run:  uvicorn app.main:app --reload --port 8000
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -15,14 +16,24 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.api.routes import router
+from app.database.db import init_db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    logger.info("Database initialised.")
+    yield
+
 
 app = FastAPI(
     title="FactGuard",
     description="AI-powered misinformation detection pipeline.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # ── CORS (allow all localhost origins during development) ────────────────────
