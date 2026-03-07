@@ -208,6 +208,7 @@ class ClaimEvidence(BaseModel):
     source_url:       str
     snippet:          str
     supports_claim:   bool
+    is_relevant:      bool           = True   # False when source cannot confirm or deny the claim
     judgement_reason: Optional[str] = None
 
 

@@ -55,8 +55,9 @@ class ClaimEvidence(BaseModel):
     source_name:      str            # denormalised for convenience
     source_url:       str            # denormalised for convenience
     snippet:          str            # verbatim excerpt from source.extracted_text
-    supports_claim:   bool           # True = supports; False = contradicts
-    judgement_reason: Optional[str]  # why this snippet affects the verdict
+    is_relevant:      bool           # False when source cannot confirm or deny the claim (unreadable, wrong time period, metadata-only, etc.)
+    supports_claim:   bool           # True = supports; False = contradicts; only meaningful when is_relevant=True
+    judgement_reason: Optional[str]  # why this snippet affects the verdict, or why the source is not relevant
 
 class JudgedClaim(BaseModel):
     claim_id:               int
@@ -116,9 +117,14 @@ For each claim received from InvestigationResult:
 
 4. Populate ClaimEvidence for each source with:
    - snippet: verbatim excerpt from extracted_text
-   - supports_claim: True if evidence supports, False if it contradicts
+   - is_relevant: False if the source is unreadable (e.g. binary PDF),
+     covers a different time period, contains only metadata/citations,
+     or otherwise cannot confirm or deny the claim. True otherwise.
+   - supports_claim: True if evidence supports, False if it contradicts.
+     Only meaningful when is_relevant=True.
    - judgement_reason: explanation of why this snippet affects the
-     verdict, including any notes on hop_depth weakness
+     verdict (or why the source is not relevant), including notes on
+     hop_depth weakness
 
 5. Apply is_primary_source weighting during evidence evaluation:
    - is_primary_source=True → evidence carries PRIMARY_SOURCE_MULTIPLIER (1.2x)
@@ -145,6 +151,7 @@ Base verdict weights are defined in config.py as VERDICT_BASE_WEIGHTS.
 Do not hardcode them in judgement.py.
 
 Per-source score calculation:
+0. Skip source entirely if is_relevant=False (source cannot confirm or deny)
 1. Start with base verdict weight from VERDICT_BASE_WEIGHTS
 2. Apply direction:
    - supports_claim=True  → keep weight as positive
@@ -188,7 +195,7 @@ source confidence multiplier. This reflects how many independent sources
 support vs contradict the claim.
 
 Net sources = count of sources where supports_claim=True minus count where
-supports_claim=False (after deduplication).
+supports_claim=False (after deduplication, excluding is_relevant=False sources).
 
 Clamp net to boundaries before lookup:
 - If net < NET_CONFIDENCE_MIN, use NET_CONFIDENCE_MIN

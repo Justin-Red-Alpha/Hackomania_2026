@@ -155,8 +155,9 @@ Respond with a JSON object only. No markdown, no code fences, no surrounding tex
 Escape any double-quote characters inside string values with \".
 {{
   "snippet": "<verbatim excerpt from the source text; replace any double-quote characters in the excerpt with single quotes>",
-  "supports_claim": <true if the snippet supports the claim, false if it contradicts>,
-  "judgement_reason": "<brief explanation of why this snippet affects the verdict, mention hop_depth weakness if hop_depth > 1>"
+  "is_relevant": <true if the source contains data that can confirm or deny the claim; false if the source is unreadable, covers a different time period, or simply cannot confirm or deny>,
+  "supports_claim": <true if the snippet supports the claim, false if it contradicts; only meaningful when is_relevant is true>,
+  "judgement_reason": "<brief explanation of why this snippet affects the verdict, or why the source is not relevant; mention hop_depth weakness if hop_depth > 1>"
 }}"""
 
     response = await client.messages.create(
@@ -187,12 +188,14 @@ Escape any double-quote characters inside string values with \".
         )
         return None
     source_id = source.source_id or source.url
+    is_relevant = bool(data.get("is_relevant", True))
     return ClaimEvidence(
         source_id=source_id,
         source_name=source.name or source.url,
         source_url=source.url,
         snippet=data["snippet"],
-        supports_claim=bool(data["supports_claim"]),
+        is_relevant=is_relevant,
+        supports_claim=bool(data["supports_claim"]) if is_relevant else False,
         judgement_reason=data.get("judgement_reason"),
     )
 
@@ -283,8 +286,8 @@ async def judge_claim(
             continue  # skip paywalled
 
         ev = evidence_by_url.get(source.url)
-        if ev is None:
-            continue
+        if ev is None or not ev.is_relevant:
+            continue  # skip irrelevant (source could not confirm or deny)
 
         base_weight = VERDICT_BASE_WEIGHTS.get(claim.verdict.value, 0.0)
         direction = 1.0 if ev.supports_claim else -1.0
@@ -302,9 +305,9 @@ async def judge_claim(
         normalized = (raw_sum / max_possible_sum + 1) / 2 * 100
         claim_score = normalized
 
-    # 5. Apply net source confidence multiplier
-    supports_count = sum(1 for ev in evidence_list if ev.supports_claim)
-    contradicts_count = sum(1 for ev in evidence_list if not ev.supports_claim)
+    # 5. Apply net source confidence multiplier (only relevant evidence counts)
+    supports_count = sum(1 for ev in evidence_list if ev.supports_claim and ev.is_relevant)
+    contradicts_count = sum(1 for ev in evidence_list if not ev.supports_claim and ev.is_relevant)
     net = supports_count - contradicts_count
     multiplier = net_confidence_multiplier(net)
     claim_score = claim_score * multiplier
