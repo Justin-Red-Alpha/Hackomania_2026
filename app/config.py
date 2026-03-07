@@ -21,3 +21,4 @@ PRIORITISE_LOCAL: bool = False
 COUNTRY: str = "Singapore"
 MIN_SOURCES_PER_CLAIM: int = 2
 MAX_HOP_DEPTH: int = 2
+MAX_SEARCH_RETRIES: int = 2

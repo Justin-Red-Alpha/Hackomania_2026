@@ -1,4 +1,4 @@
-﻿# Investigation Team - CLAUDE.md
+# Investigation Team - CLAUDE.md
 
 **Piece:** Step 4 (Investigator orchestrator + parallel fact-checking agents)
 **Main docs:** [../../CLAUDE.md](../../CLAUDE.md)
@@ -31,6 +31,7 @@
 | `COUNTRY`               | unset      | Country filter, e.g. `Singapore`        |
 | `MIN_SOURCES_PER_CLAIM` | `2`        | Minimum independent sources per claim   |
 | `MAX_HOP_DEPTH`         | `2`        | Max citation hops when chasing primary sources  |
+| `MAX_SEARCH_RETRIES`    | `2`        | Max retry attempts when < MIN_SOURCES_PER_CLAIM unique sources found after dedup |
 
 ## Input Contract
 
@@ -118,6 +119,23 @@ tavily-search(claim)
 - The Claude classification prompt must return both the tier and any cited URL found in the text.
 - `MAX_HOP_DEPTH` (default 2) caps recursion; most primary sources are one hop away.
 - Hops on independent cited URLs are parallelised with `asyncio.gather`.
+
+### Deduplication and retry
+
+After all citation chasing completes for a claim, sources are deduplicated by URL. Each removed
+duplicate is logged at `DEBUG` level with the `duplicate_url` and `claim_id` fields for
+explainability and audit traceability.
+
+If the number of unique sources remaining after deduplication is below `MIN_SOURCES_PER_CLAIM`,
+the agent retries the Tavily search up to `MAX_SEARCH_RETRIES` times. Each retry uses a
+Claude-generated alternative query (different angle or keywords) to surface different sources.
+Duplicate sources encountered during retries are also logged and discarded. Each retry attempt
+and its outcome (sources gained, total count) are logged at `DEBUG` level.
+
+| Config key              | Default | Trigger condition                                           |
+| ----------------------- | ------- | ----------------------------------------------------------- |
+| `MIN_SOURCES_PER_CLAIM` | `2` | Retry if unique sources < this value after deduplication    |
+| `MAX_SEARCH_RETRIES`  | `2`   | Maximum number of retry search attempts per claim           |
 
 ## Key Conventions
 
