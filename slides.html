@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FactGuard — Pipeline Stage Explainers</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --border:    #30363d;
+    --text:      #e6edf3;
+    --muted:     #8b949e;
+    --green:     #3fb950;
+    --yellow:    #d29922;
+    --orange:    #e3722e;
+    --blue:      #58a6ff;
+    --purple:    #bc8cff;
+    --red:       #f85149;
+
+    --ing:       #58a6ff;   /* ingestion  — blue   */
+    --inv:       #bc8cff;   /* investigation — purple */
+    --jud:       #3fb950;   /* judgement  — green  */
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  /* ── Navigation ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    z-index: 100;
+  }
+  .nav-btn {
+    padding: 6px 18px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: .02em;
+  }
+  .nav-btn:hover { background: #21262d; color: var(--text); }
+  .nav-btn.active { color: var(--text); border-color: currentColor; }
+  .nav-btn.ing  { --c: var(--ing); }
+  .nav-btn.inv  { --c: var(--inv); }
+  .nav-btn.jud  { --c: var(--jud); }
+  .nav-btn.active { color: var(--c); border-color: var(--c);
+                    background: color-mix(in srgb, var(--c) 10%, transparent); }
+
+  /* ── Slides ── */
+  .slide { display: none; padding: 72px 48px 48px; max-width: 1100px; margin: 0 auto; }
+  .slide.visible { display: block; }
+
+  /* ── Slide header ── */
+  .slide-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stage-badge {
+    flex-shrink: 0;
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .slide-title-block { flex: 1; }
+  .slide-stage-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .slide-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .slide-subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* ── Two-column body ── */
+  .slide-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 720px) { .slide-body { grid-template-columns: 1fr; } }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* ── Function list ── */
+  .fn-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .fn-item { display: flex; gap: 12px; align-items: flex-start; }
+  .fn-icon {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
+    margin-top: 1px;
+  }
+  .fn-icon svg { width: 14px; height: 14px; stroke-width: 2; }
+  .fn-text strong { color: var(--text); display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 1px; }
+  .fn-text span { color: var(--muted); font-size: 12.5px; }
+
+  /* ── Feature pills ── */
+  .features { display: flex; flex-direction: column; gap: 10px; }
+  .feature {
+    border-radius: 8px;
+    padding: 12px 14px;
+    border-left: 3px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+  }
+  .feature-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 3px;
+  }
+  .feature-desc {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── Flow diagram ── */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    position: relative;
+  }
+  .flow-step + .flow-step::before {
+    content: '';
+    position: absolute;
+    left: 13px;
+    top: -10px;
+    width: 2px;
+    height: 10px;
+    background: var(--border);
+  }
+  .flow-num {
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    margin-top: 1px;
+  }
+  .flow-content { flex: 1; padding-bottom: 12px; }
+  .flow-content strong { font-size: 13px; font-weight: 600; color: var(--text); display: block; }
+  .flow-content span { font-size: 12px; color: var(--muted); }
+
+  /* ── Tag row ── */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: #21262d;
+  }
+  .tag.accent {
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  /* ── Score bar (judgement) ── */
+  .score-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .score-label { width: 90px; font-size: 11.5px; color: var(--muted); flex-shrink: 0; }
+  .score-bar-wrap { flex: 1; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; }
+  .score-bar { height: 100%; border-radius: 3px; }
+  .score-val { width: 30px; font-size: 11px; color: var(--muted); text-align: right; flex-shrink: 0; }
+
+  /* ── Verdict chips ── */
+  .verdict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .verdict-chip {
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .verdict-chip .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .v-true        { background: rgba(63,185,80,.12); color: #3fb950; }
+  .v-mostly-true { background: rgba(63,185,80,.08); color: #85d996; }
+  .v-misleading  { background: rgba(210,153,34,.12); color: #d29922; }
+  .v-inconclusive{ background: rgba(139,148,158,.12); color: #8b949e; }
+  .v-unverified  { background: rgba(188,140,255,.12); color: #bc8cff; }
+  .v-mostly-false{ background: rgba(227,114,46,.12); color: #e3722e; }
+  .v-false       { background: rgba(248,81,73,.12); color: #f85149; }
+
+  /* ── Formula box ── */
+  .formula {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-top: 10px;
+  }
+  .formula .hi { color: var(--accent); }
+  .formula .op { color: var(--yellow); }
+
+  /* ── Two-row grid for slide 2 ── */
+  .slide-body-2x2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+  }
+  .span2 { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <button class="nav-btn ing active" onclick="show('ing')">Stage 1–3 &nbsp; Ingestion</button>
+  <button class="nav-btn inv" onclick="show('inv')">Stage 4 &nbsp; Investigation</button>
+  <button class="nav-btn jud" onclick="show('jud')">Stage 5 &nbsp; Judgement</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 1 — INGESTION
+═══════════════════════════════════════════════════════════ -->
+<div id="slide-ing" class="slide visible" style="--accent: var(--ing)">
+
+  <div class="slide-header">
+    <div class="stage-badge">1–3</div>
+    <div class="slide-title-block">
+      <div class="slide-stage-label">Stages 1 – 3</div>
+      <div class="slide-title">Ingestion</div>
+      <div class="slide-subtitle">
+        Turns any supported content format into a clean, structured, English-language body
+        ready for fact-checking — regardless of source format, file type, or language.
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-body">
+
+    <!-- Left: pipeline flow -->
+    <div class="card">
+      <div class="card-title">Pipeline</div>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <div class="flow-content">
+            <strong>Accept input</strong>
+            <span>URL, file upload, or plain text. Raw content is archived to S3.</span>
+            <div class="tag-row">
+              <span class="tag accent">URL</span><span class="tag">PDF</span>
+              <span class="tag">DOCX</span><span class="tag">HTML</span>
+              <span class="tag">MD</span><span class="tag">RTF</span>
+              <span class="tag">Image</span><span class="tag">Text</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div class="flow-content">
+            <strong>Extract &amp; structure</strong>
+            <span>Parse text from the file format. Claude extracts metadata (title, publisher, author, date, section, opinion flag) and detects the source language.</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <div class="flow-content">
+            <strong>Summarise if needed</strong>
+            <span>If the article body exceeds ~4 000 tokens, Claude summarises it so downstream agent prompts stay within token limits. Shorter articles pass through unchanged.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: distinctive features -->
+    <div class="card">
+      <div class="card-title">Distinctive features</div>
+      <div class="features">
+
+        <div class="feature">
+          <div class="feature-title">Claude OCR for image inputs</div>
+          <div class="feature-desc">
+            Articles submitted as screenshots or photos are read by Claude's vision API,
+            extracting every visible word verbatim. No dedicated OCR library required —
+            accuracy matches the LLM's own reading comprehension.
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-title">Automatic multilingual translation</div>
+          <div class="feature-desc">
+            Language is detected from the extracted text, not from HTTP headers or metadata.
+            Non-English articles are translated to English by Claude before any analysis runs.
+            The original-language text is preserved separately — investigators see clean English
+            while the archive retains the source.
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-title">Article body preserved for writing quality</div>
+          <div class="feature-desc">
+            The full English body is stored on <code>content.body</code> and passed to the
+            Judgement stage, where Claude independently assesses writing style signals
+            (sensationalism, anonymous sources, emotional language) as supplementary
+            credibility context — separate from the factual claim analysis.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 2 — INVESTIGATION
+═══════════════════════════════════════════════════════════ -->
+<div id="slide-inv" class="slide" style="--accent: var(--inv)">
+
+  <div class="slide-header">
+    <div class="stage-badge">4</div>
+    <div class="slide-title-block">
+      <div class="slide-stage-label">Stage 4</div>
+      <div class="slide-title">Investigation</div>
+      <div class="slide-subtitle">
+        Four specialised agents run in parallel to find and classify evidence for every
+        claim — prioritising original data over second-hand mentions, and catching
+        AI-generated content before it reaches the scorer.
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-body-2x2">
+
+    <!-- Top-left: agents -->
+    <div class="card">
+      <div class="card-title">Parallel agents</div>
+      <div class="fn-list">
+        <div class="fn-item">
+          <div class="fn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          </div>
+          <div class="fn-text">
+            <strong>Search agent</strong>
+            <span>Tavily search per claim; chases citations to primary sources; extracts full text from HTML, PDF, CSV, and Excel URLs.</span>
+          </div>
+        </div>
+        <div class="fn-item">
+          <div class="fn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div class="fn-text">
+            <strong>Fakeness agent</strong>
+            <span>GPTZero API scores the article's likelihood of being AI-generated (0–100). Scores above 60 trigger a credibility penalty in Judgement.</span>
+          </div>
+        </div>
+        <div class="fn-item">
+          <div class="fn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div class="fn-text">
+            <strong>Statistics agent</strong>
+            <span>Extracts cited figures and checks them against authoritative data sources to flag numbers that appear inaccurate or out of context.</span>
+          </div>
+        </div>
+        <div class="fn-item">
+          <div class="fn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="fn-text">
+            <strong>Source checker</strong>
+            <span>Researches the publisher's and author's track record. Produces a 0–100 credibility score, political bias label, and known-issue list.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top-right: citation chasing -->
+    <div class="card">
+      <div class="card-title">Citation-chasing evidence tiers</div>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-title">Primary — kept as strong evidence</div>
+          <div class="feature-desc">Source provides its own original data, analysis, or official statement. Weight multiplier: <strong style="color:var(--accent)">1.2×</strong></div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">Secondary with citation — followed</div>
+          <div class="feature-desc">Source relays a claim and links to a specific URL. The agent follows the link and reclassifies the target — up to <strong style="color:var(--accent)">MAX_HOP_DEPTH = 2</strong> hops. Weight multiplier: <strong style="color:var(--accent)">0.8×</strong>, with an additional <strong style="color:var(--accent)">0.9× decay per hop</strong>.</div>
+        </div>
+        <div class="feature">
+          <div class="feature-title">Mention-only — discarded</div>
+          <div class="feature-desc">Source references a claim without any citation trail. Carrying no traceable evidence, it is dropped entirely rather than contributing noise.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: full-width distinctive features -->
+    <div class="card span2">
+      <div class="card-title">Distinctive features</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+
+        <div class="feature">
+          <div class="feature-title">Binary file extraction</div>
+          <div class="feature-desc">
+            PDF, CSV, and Excel URLs are detected by path extension and downloaded via
+            <code>httpx</code>, then parsed with <code>pypdf</code> / stdlib <code>csv</code>
+            / <code>openpyxl</code>. Statistical reports and government data sheets are
+            readable as evidence — not just HTML pages.
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-title">Deduplication + retry</div>
+          <div class="feature-desc">
+            Sources are fingerprinted by the first 300 characters of extracted text to
+            catch syndicated copies. If unique sources fall below
+            <code>MIN_SOURCES_PER_CLAIM</code>, Claude generates a rephrased query and
+            retries Tavily up to <code>MAX_SEARCH_RETRIES</code> times — maximising
+            evidence coverage per claim.
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-title">Source independence tracking</div>
+          <div class="feature-desc">
+            Each source is flagged <code>is_independent</code> when it is editorially
+            independent of the original publisher. Non-independent corroboration
+            (e.g. the same outlet's sister publication) is surfaced in the evidence
+            trail, preventing self-referential validation from inflating the score.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 3 — JUDGEMENT
+═══════════════════════════════════════════════════════════ -->
+<div id="slide-jud" class="slide" style="--accent: var(--jud)">
+
+  <div class="slide-header">
+    <div class="stage-badge">5</div>
+    <div class="slide-title-block">
+      <div class="slide-stage-label">Stage 5</div>
+      <div class="slide-title">Judgement</div>
+      <div class="slide-subtitle">
+        Aggregates all evidence into a weighted, multi-factor credibility score —
+        distinguishing between claims with conflicting evidence and claims with no evidence,
+        and surfacing structural signals that a simple score cannot capture.
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-body">
+
+    <!-- Left: scoring chain -->
+    <div class="card">
+      <div class="card-title">Scoring chain (per claim)</div>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <div class="flow-content">
+            <strong>Evidence extraction</strong>
+            <span>Claude selects the most relevant verbatim snippet from each source and determines whether it supports or contradicts the claim.</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div class="flow-content">
+            <strong>Weighted source scoring</strong>
+            <span>Each relevant source contributes a signed value:</span>
+            <div class="formula">
+base_weight <span class="op">×</span> direction <span class="op">×</span> <span class="hi">quality_multiplier</span> <span class="op">×</span> <span class="hi">hop_decay</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <div class="flow-content">
+            <strong>Net confidence multiplier</strong>
+            <span>Adjusts the normalised score by how many independent sources agree vs. disagree — from 0.6× (contradicting majority) to 1.4× (5+ corroborating).</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">4</div>
+          <div class="flow-content">
+            <strong>Final blend</strong>
+            <span>Claim scores are averaged, then blended with publisher credibility and penalised if AI-generated content is detected.</span>
+            <div class="formula">
+<span class="hi">claims</span> <span class="op">× 0.7</span>  <span class="op">+</span>  <span class="hi">publisher</span> <span class="op">× 0.3</span>
+<span class="op">[× 0.8</span>  if fakeness_score <span class="op">&gt;</span> 60<span class="op">]</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: distinctive features -->
+    <div class="card">
+      <div class="card-title">Distinctive features</div>
+      <div class="features">
+
+        <div class="feature">
+          <div class="feature-title">Inconclusive vs. Unverified — semantically distinct</div>
+          <div class="feature-desc">
+            Most systems collapse these into one label. FactGuard separates them:
+            <em style="color:var(--text)">Inconclusive</em> means sources were found but their
+            evidence is balanced or conflicting (score 45–59). <em style="color:var(--text)">
+            Unverified</em> means no usable evidence was found at all
+            (<code>max_possible_sum = 0</code>, score forced to neutral 50). The reader
+            knows whether the system looked and was uncertain, or simply could not look.
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-title">Government-source-only flag + boost</div>
+          <div class="feature-desc">
+            When all corroborating sources for a claim are government-owned, a 1.1×
+            credibility boost is applied (official sources carry authority), but
+            <code>government_source_only_flag</code> is also surfaced in the UI — prompting
+            the reader to seek independent verification where official sources may have a
+            conflict of interest.
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-title">Conflict detection</div>
+          <div class="feature-desc">
+            When the evidence-based claim score and the publisher credibility score diverge
+            by 40+ points, <code>is_conflicted = true</code> is set and a note is written
+            into the summary. This catches the two hardest cases: a known-bad outlet
+            publishing genuinely accurate claims, and a credible outlet running a
+            poorly-evidenced story.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Verdict chips -->
+      <div style="margin-top:18px">
+        <div class="card-title">Claim verdict scale</div>
+        <div class="verdict-grid">
+          <div class="verdict-chip v-true"><span class="dot" style="background:#3fb950"></span>True &nbsp;<small style="font-weight:400;opacity:.7">80–100</small></div>
+          <div class="verdict-chip v-mostly-true"><span class="dot" style="background:#85d996"></span>Mostly True &nbsp;<small style="font-weight:400;opacity:.7">60–79</small></div>
+          <div class="verdict-chip v-misleading"><span class="dot" style="background:#d29922"></span>Misleading &nbsp;<small style="font-weight:400;opacity:.7">30–44</small></div>
+          <div class="verdict-chip v-inconclusive"><span class="dot" style="background:#8b949e"></span>Inconclusive &nbsp;<small style="font-weight:400;opacity:.7">45–59</small></div>
+          <div class="verdict-chip v-unverified"><span class="dot" style="background:#bc8cff"></span>Unverified &nbsp;<small style="font-weight:400;opacity:.7">no evidence</small></div>
+          <div class="verdict-chip v-mostly-false"><span class="dot" style="background:#e3722e"></span>Mostly False &nbsp;<small style="font-weight:400;opacity:.7">15–29</small></div>
+          <div class="verdict-chip v-false"><span class="dot" style="background:#f85149"></span>False &nbsp;<small style="font-weight:400;opacity:.7">0–14</small></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('visible'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('slide-' + id).classList.add('visible');
+    document.querySelector('.nav-btn.' + id).classList.add('active');
+  }
+</script>
+</body>
+</html>
