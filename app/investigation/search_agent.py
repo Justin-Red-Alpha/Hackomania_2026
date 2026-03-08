@@ -19,6 +19,7 @@ import os
 import re
 import uuid
 from datetime import date
+from urllib.parse import urlparse
 
 import aioboto3
 import anthropic
@@ -71,6 +72,95 @@ _GOVT_DOMAINS = (
     ".gov.sg", ".gov.uk", ".gov.au", ".gov.us", ".gov", ".gc.ca",
     "who.int", "un.org", "worldbank.org", "imf.org",
 )
+
+_BINARY_EXTENSIONS: dict[str, str] = {
+    ".pdf": "pdf",
+    ".csv": "csv",
+    ".xlsx": "excel",
+    ".xls": "excel",
+}
+
+
+def _url_file_type(url: str) -> str | None:
+    """Return 'pdf', 'csv', or 'excel' if the URL path ends with a known binary extension, else None."""
+    path = urlparse(url).path.lower()
+    for ext, ftype in _BINARY_EXTENSIONS.items():
+        if path.endswith(ext):
+            return ftype
+    return None
+
+
+async def _fetch_and_extract_binary(url: str, file_type: str) -> str | None:
+    """
+    Download a binary source file (PDF, CSV, or Excel) and extract its text content.
+
+    Returns plain text suitable for claim classification, or None if extraction fails.
+    """
+    import httpx
+    from io import BytesIO
+
+    logger.debug(
+        "search_agent: downloading binary source file",
+        extra={"stage": "binary_extract", "url": url, "file_type": file_type},
+    )
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as http_client:
+            response = await http_client.get(url)
+            response.raise_for_status()
+            data = response.content
+    except Exception:
+        logger.warning(
+            "search_agent: failed to download binary source",
+            extra={"stage": "binary_extract", "url": url, "file_type": file_type},
+            exc_info=True,
+        )
+        return None
+
+    try:
+        if file_type == "pdf":
+            import pypdf
+
+            reader = pypdf.PdfReader(BytesIO(data))
+            pages = [page.extract_text() or "" for page in reader.pages]
+            text = "\n\n".join(pages).strip()
+
+        elif file_type == "csv":
+            import csv
+            import io
+
+            decoded = data.decode("utf-8", errors="replace")
+            reader = csv.reader(io.StringIO(decoded))
+            text = "\n".join(", ".join(row) for row in reader)
+
+        elif file_type == "excel":
+            import openpyxl
+
+            wb = openpyxl.load_workbook(BytesIO(data), read_only=True, data_only=True)
+            lines: list[str] = []
+            for sheet in wb.worksheets:
+                lines.append(f"[Sheet: {sheet.title}]")
+                for row in sheet.iter_rows(values_only=True):
+                    line = ", ".join("" if v is None else str(v) for v in row)
+                    if line.strip():
+                        lines.append(line)
+            text = "\n".join(lines)
+
+        else:
+            return None
+
+    except Exception:
+        logger.warning(
+            "search_agent: failed to extract content from binary source",
+            extra={"stage": "binary_extract", "url": url, "file_type": file_type},
+            exc_info=True,
+        )
+        return None
+
+    logger.debug(
+        "search_agent: binary source extraction complete",
+        extra={"stage": "binary_extract", "url": url, "file_type": file_type, "text_length": len(text)},
+    )
+    return text or None
 
 
 async def _upload_source_to_s3(html_content: str, source_url: str) -> str | None:
@@ -240,24 +330,36 @@ async def _process_url(
             )
         ]
 
-    raw_html: str | None = await asyncio.to_thread(trafilatura.fetch_url, url)
-    if not raw_html:
-        logger.debug(
-            "search_agent: trafilatura could not fetch URL",
-            extra={"stage": "trafilatura_extract", "url": url},
-        )
-        return []
-    extracted_text: str = (
-        await asyncio.to_thread(
-            trafilatura.extract, raw_html, include_comments=False, include_tables=True
-        )
-    ) or ""
-    if not extracted_text:
-        logger.debug(
-            "search_agent: trafilatura extracted no content",
-            extra={"stage": "trafilatura_extract", "url": url},
-        )
-        return []
+    # Detect binary file types (PDF, CSV, Excel) and extract content directly;
+    # trafilatura cannot parse these formats.
+    file_type = _url_file_type(url)
+    if file_type:
+        extracted_text = await _fetch_and_extract_binary(url, file_type) or ""
+        if not extracted_text:
+            logger.debug(
+                "search_agent: binary source extraction returned no content",
+                extra={"stage": "binary_extract", "url": url, "file_type": file_type},
+            )
+            return []
+    else:
+        raw_html: str | None = await asyncio.to_thread(trafilatura.fetch_url, url)
+        if not raw_html:
+            logger.debug(
+                "search_agent: trafilatura could not fetch URL",
+                extra={"stage": "trafilatura_extract", "url": url},
+            )
+            return []
+        extracted_text = (
+            await asyncio.to_thread(
+                trafilatura.extract, raw_html, include_comments=False, include_tables=True
+            )
+        ) or ""
+        if not extracted_text:
+            logger.debug(
+                "search_agent: trafilatura extracted no content",
+                extra={"stage": "trafilatura_extract", "url": url},
+            )
+            return []
 
     classification = await _classify_source(client, claim_summary, extracted_text, url)
     cls = classification.get("classification", "mention_only")

@@ -279,6 +279,7 @@ const VERDICT_HL = {
   true:         'claim-hl-green',
   mostly_true:  'claim-hl-green',
   misleading:   'claim-hl-yellow',
+  inconclusive: 'claim-hl-yellow',
   unverified:   'claim-hl-yellow',
   mostly_false: 'claim-hl-red',
   false:        'claim-hl-red',
@@ -288,6 +289,7 @@ const VERDICT_HL_COLOUR = {
   true:         '#3fb950',
   mostly_true:  '#3fb950',
   misleading:   '#d29922',
+  inconclusive: '#8b949e',
   unverified:   '#d29922',
   mostly_false: '#f85149',
   false:        '#f85149',
@@ -370,7 +372,7 @@ function renderContentCredibility(cred) {
     ${cred.government_source_only_flag
       ? '<div class="govt-only-flag" style="margin-bottom:0.75rem"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Govt sources only</div>'
       : ''}
-    <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.35rem">${claimCountChips(cred)}</ul>
+    <ul style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:.35rem">${claimCountChips(cred)}</ul>
     ${qualityChips ? `<div class="quality-grid">${qualityChips}</div>` : ''}
   `;
 }
@@ -380,6 +382,7 @@ function claimCountChips(cred) {
     ['True',         cred.claims_true,        'v-true'],
     ['Mostly True',  cred.claims_mostly_true,  'v-mostly-true'],
     ['Misleading',   cred.claims_misleading,   'v-misleading'],
+    ['Inconclusive', cred.claims_inconclusive, 'v-inconclusive'],
     ['Unverified',   cred.claims_unverified,   'v-unverified'],
     ['Mostly False', cred.claims_mostly_false, 'v-mostly-false'],
     ['False',        cred.claims_false,        'v-false'],
@@ -708,6 +711,7 @@ function verdictClass(v) {
     true:          'v-true',
     mostly_true:   'v-mostly-true',
     misleading:    'v-misleading',
+    inconclusive:  'v-inconclusive',
     unverified:    'v-unverified',
     mostly_false:  'v-mostly-false',
     false:         'v-false',
@@ -720,6 +724,7 @@ function verdictLabel(v) {
     true:            'True',
     mostly_true:     'Mostly True',
     misleading:      'Misleading',
+    inconclusive:    'Inconclusive',
     unverified:      'Unverified',
     mostly_false:    'Mostly False',
     false:           'False',
@@ -836,6 +841,7 @@ Coffee is indeed one of the most widely consumed beverages on earth. Over 2 bill
       claims_true:        1,
       claims_mostly_true: 1,
       claims_misleading:  1,
+      claims_inconclusive: 0,
       claims_unverified:  0,
       claims_mostly_false: 0,
       claims_false:        2,

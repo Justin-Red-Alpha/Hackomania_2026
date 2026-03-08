@@ -108,17 +108,35 @@ than accepting mere mentions as evidence.
 ```
 tavily-search(claim)
   for each result URL (parallel via asyncio.gather):
-    trafilatura(url)
-      Claude classifies: primary | secondary-with-citation | mention-only
-        primary                  -> keep (is_primary_source=True, hop_depth=current)
-        secondary-with-citation  -> if hop_depth < MAX_HOP_DEPTH:
-                                      tavily-extract(cited_url, hop_depth+1) -> re-classify
-        mention-only             -> discard
+    if URL ends in .pdf / .csv / .xlsx / .xls:
+      httpx download -> parse with pypdf / csv / openpyxl -> extracted_text
+    else:
+      trafilatura(url) -> extracted_text
+    Claude classifies: primary | secondary-with-citation | mention-only
+      primary                  -> keep (is_primary_source=True, hop_depth=current)
+      secondary-with-citation  -> if hop_depth < MAX_HOP_DEPTH:
+                                    tavily-extract(cited_url, hop_depth+1) -> re-classify
+      mention-only             -> discard
 ```
 
 - The Claude classification prompt must return both the tier and any cited URL found in the text.
 - `MAX_HOP_DEPTH` (default 2) caps recursion; most primary sources are one hop away.
 - Hops on independent cited URLs are parallelised with `asyncio.gather`.
+
+### Binary file handling
+
+URLs whose path ends with `.pdf`, `.csv`, `.xlsx`, or `.xls` are downloaded directly
+via `httpx` and parsed before classification — trafilatura cannot extract content from
+these formats. Detection is based on the URL path extension (query parameters ignored).
+
+| Extension      | Parser                              |
+| -------------- | ----------------------------------- |
+| `.pdf`         | `pypdf` — page text joined with `\n\n` |
+| `.csv`         | stdlib `csv` — rows joined as comma-separated lines |
+| `.xlsx`/`.xls` | `openpyxl` — each sheet's rows joined as comma-separated lines |
+
+If download or parsing fails, the URL is silently skipped (logged at `DEBUG`). The
+extracted text then follows the same classification and source-building path as HTML.
 
 ### Deduplication and retry
 

@@ -520,9 +520,12 @@ main {
   box-sizing: border-box;
 }
 
+#fakeness-card {
+  flex: 3;
+}
+
 #content-cred-card {
-  flex: 0 0 auto;
-  width: fit-content;
+  flex: 2;
   padding: 2rem;
 }
 
@@ -1149,8 +1152,9 @@ main {
 /* ── Verdict colour tokens ── */
 .v-true        { background: rgba(63,185,80,0.15);  color: var(--green); }
 .v-mostly-true { background: rgba(63,185,80,0.1);   color: #85d996; }
-.v-misleading  { background: rgba(210,153,34,0.15); color: var(--yellow); }
-.v-unverified  { background: rgba(188,140,255,0.15);color: var(--purple); }
+.v-misleading    { background: rgba(210,153,34,0.15); color: var(--yellow); }
+.v-inconclusive  { background: rgba(139,148,158,0.15);color: #8b949e; }
+.v-unverified    { background: rgba(188,140,255,0.15);color: var(--purple); }
 .v-false       { background: rgba(248,81,73,0.15);  color: var(--red); }
 .v-mostly-false{ background: rgba(227,114,46,0.15); color: var(--orange); }
 

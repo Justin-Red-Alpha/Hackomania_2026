@@ -63,7 +63,8 @@ class ClaimVerdict(str, Enum):
     true         = "true"
     mostly_true  = "mostly_true"
     misleading   = "misleading"
-    unverified   = "unverified"
+    inconclusive = "inconclusive"  # evidence exists but conflicts or is balanced
+    unverified   = "unverified"    # no sources available to check against
     mostly_false = "mostly_false"
     false        = "false"
 
@@ -189,6 +190,7 @@ class ContentCredibility(BaseModel):
     claims_true:                 int                      = 0
     claims_mostly_true:          int                      = 0
     claims_misleading:           int                      = 0
+    claims_inconclusive:         int                      = 0
     claims_unverified:           int                      = 0
     claims_mostly_false:         int                      = 0
     claims_false:                int                      = 0

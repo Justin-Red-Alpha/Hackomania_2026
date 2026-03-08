@@ -32,7 +32,8 @@ MAX_SEARCH_RETRIES: int = 2
 VERDICT_BASE_WEIGHTS: dict = {
     "true":         +1.0,
     "mostly_true":  +0.5,
-    "unverified":    0.0,  # neutral, no penalty
+    "inconclusive": +1.0,  # conflicting evidence — let judgement re-evaluate; must be non-zero
+    "unverified":   +1.0,  # no investigator opinion — let evidence decide; must be non-zero
     "misleading":   -0.3,
     "mostly_false": -0.5,
     "false":        -1.0,

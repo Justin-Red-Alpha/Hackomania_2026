@@ -70,7 +70,7 @@ def score_to_verdict(score: float) -> ClaimVerdict:
     if score >= 60:
         return ClaimVerdict.mostly_true
     if score >= 45:
-        return ClaimVerdict.unverified
+        return ClaimVerdict.inconclusive
     if score >= 30:
         return ClaimVerdict.misleading
     if score >= 15:
@@ -339,8 +339,12 @@ async def judge_claim(
 
     overall_reason = " ".join(overall_reason_parts) if overall_reason_parts else None
 
-    # Re-derive verdict from numerical score
+    # Re-derive verdict from numerical score.
+    # score_to_verdict returns `inconclusive` for the neutral range (45–59).
+    # Override to `unverified` when there was genuinely no evidence to score against.
     verdict = score_to_verdict(claim_score)
+    if max_possible_sum == 0:
+        verdict = ClaimVerdict.unverified
 
     # If all sources paywalled, force unverified
     if paywalled_count > 0 and len(evidence_list) == 0:
@@ -436,6 +440,7 @@ async def judge(
         "true": 0,
         "mostly_true": 0,
         "misleading": 0,
+        "inconclusive": 0,
         "unverified": 0,
         "mostly_false": 0,
         "false": 0,
@@ -485,6 +490,7 @@ async def judge(
         claims_true=verdict_counts["true"],
         claims_mostly_true=verdict_counts["mostly_true"],
         claims_misleading=verdict_counts["misleading"],
+        claims_inconclusive=verdict_counts["inconclusive"],
         claims_unverified=verdict_counts["unverified"],
         claims_mostly_false=verdict_counts["mostly_false"],
         claims_false=verdict_counts["false"],
