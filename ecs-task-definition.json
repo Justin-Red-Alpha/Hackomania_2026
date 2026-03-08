@@ -1,0 +1,80 @@
+{
+  "family": "factguard",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "factguard",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/factguard:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [],
+      "secrets": [
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/ANTHROPIC_API_KEY"
+        },
+        {
+          "name": "TAVILY_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/TAVILY_API_KEY"
+        },
+        {
+          "name": "AWS_ACCESS_KEY_ID",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/AWS_ACCESS_KEY_ID"
+        },
+        {
+          "name": "AWS_SECRET_ACCESS_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/AWS_SECRET_ACCESS_KEY"
+        },
+        {
+          "name": "S3_BUCKET_NAME",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/S3_BUCKET_NAME"
+        },
+        {
+          "name": "S3_REGION",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/S3_REGION"
+        },
+        {
+          "name": "CLICKHOUSE_HOST",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/CLICKHOUSE_HOST"
+        },
+        {
+          "name": "CLICKHOUSE_PORT",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/CLICKHOUSE_PORT"
+        },
+        {
+          "name": "CLICKHOUSE_USER",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/CLICKHOUSE_USER"
+        },
+        {
+          "name": "CLICKHOUSE_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:factguard/CLICKHOUSE_PASSWORD"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/factguard",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 15
+      }
+    }
+  ]
+}
