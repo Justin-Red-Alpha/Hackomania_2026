@@ -8,25 +8,20 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:        #0d1117;
-    --surface:   #161b22;
-    --border:    #30363d;
-    --text:      #e6edf3;
-    --muted:     #8b949e;
-    --green:     #3fb950;
-    --yellow:    #d29922;
-    --orange:    #e3722e;
-    --blue:      #58a6ff;
-    --purple:    #bc8cff;
-    --red:       #f85149;
+    --bg:      #1B212C;
+    --surface: #232B38;
+    --border:  #2E3A4A;
+    --text:    #D8E4EF;
+    --muted:   #7A8FA0;
 
-    --ing:       #58a6ff;   /* ingestion  — blue   */
-    --inv:       #bc8cff;   /* investigation — purple */
-    --jud:       #3fb950;   /* judgement  — green  */
+    --ing:     #5B9FE8;   /* light blue  — variant of #0145AC */
+    --inv:     #82C7A5;   /* sage green  — #82C7A5            */
+    --jud:     #3A7BC8;   /* mid blue    — variant of #0145AC */
+
+    --amber:   #C49A4A;
   }
 
   html, body {
-    height: 100%;
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -59,13 +54,15 @@
     transition: all .15s;
     letter-spacing: .02em;
   }
-  .nav-btn:hover { background: #21262d; color: var(--text); }
-  .nav-btn.active { color: var(--text); border-color: currentColor; }
-  .nav-btn.ing  { --c: var(--ing); }
-  .nav-btn.inv  { --c: var(--inv); }
-  .nav-btn.jud  { --c: var(--jud); }
-  .nav-btn.active { color: var(--c); border-color: var(--c);
-                    background: color-mix(in srgb, var(--c) 10%, transparent); }
+  .nav-btn:hover { background: #273040; color: var(--text); }
+  .nav-btn.ing { --c: var(--ing); }
+  .nav-btn.inv { --c: var(--inv); }
+  .nav-btn.jud { --c: var(--jud); }
+  .nav-btn.active {
+    color: var(--c);
+    border-color: var(--c);
+    background: color-mix(in srgb, var(--c) 10%, transparent);
+  }
 
   /* ── Slides ── */
   .slide { display: none; padding: 72px 48px 48px; max-width: 1100px; margin: 0 auto; }
@@ -148,7 +145,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
     color: var(--accent);
     margin-top: 1px;
   }
@@ -162,7 +159,7 @@
     border-radius: 8px;
     padding: 12px 14px;
     border-left: 3px solid var(--accent);
-    background: color-mix(in srgb, var(--accent) 7%, transparent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
   }
   .feature-title {
     font-size: 13px;
@@ -187,10 +184,8 @@
   .flow-step + .flow-step::before {
     content: '';
     position: absolute;
-    left: 13px;
-    top: -10px;
-    width: 2px;
-    height: 10px;
+    left: 13px; top: -10px;
+    width: 2px; height: 10px;
     background: var(--border);
   }
   .flow-num {
@@ -220,20 +215,13 @@
     border-radius: 20px;
     border: 1px solid var(--border);
     color: var(--muted);
-    background: #21262d;
+    background: #273040;
   }
   .tag.accent {
     border-color: color-mix(in srgb, var(--accent) 40%, transparent);
     color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
-
-  /* ── Score bar (judgement) ── */
-  .score-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .score-label { width: 90px; font-size: 11.5px; color: var(--muted); flex-shrink: 0; }
-  .score-bar-wrap { flex: 1; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; }
-  .score-bar { height: 100%; border-radius: 3px; }
-  .score-val { width: 30px; font-size: 11px; color: var(--muted); text-align: right; flex-shrink: 0; }
 
   /* ── Verdict chips ── */
   .verdict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -247,37 +235,28 @@
     gap: 6px;
   }
   .verdict-chip .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .v-true        { background: rgba(63,185,80,.12); color: #3fb950; }
-  .v-mostly-true { background: rgba(63,185,80,.08); color: #85d996; }
-  .v-misleading  { background: rgba(210,153,34,.12); color: #d29922; }
-  .v-inconclusive{ background: rgba(139,148,158,.12); color: #8b949e; }
-  .v-unverified  { background: rgba(188,140,255,.12); color: #bc8cff; }
-  .v-mostly-false{ background: rgba(227,114,46,.12); color: #e3722e; }
-  .v-false       { background: rgba(248,81,73,.12); color: #f85149; }
+  .v-true         { background: rgba(130,199,165,.13); color: #82C7A5; }
+  .v-mostly-true  { background: rgba(165,212,188,.10); color: #A5D4BC; }
+  .v-misleading   { background: rgba(196,154, 74,.13); color: #C49A4A; }
+  .v-inconclusive { background: rgba(122,143,160,.12); color: #7A8FA0; }
+  .v-unverified   { background: rgba( 91,159,232,.12); color: #5B9FE8; }
+  .v-mostly-false { background: rgba(196,122, 80,.13); color: #C47A50; }
+  .v-false        { background: rgba(196, 85, 80,.13); color: #C45550; }
 
   /* ── Formula box ── */
   .formula {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 12px;
-    background: #0d1117;
+    background: #141B25;
     border: 1px solid var(--border);
     border-radius: 6px;
-    padding: 12px 14px;
+    padding: 10px 14px;
     color: var(--muted);
     line-height: 1.7;
-    margin-top: 10px;
+    margin-top: 8px;
   }
   .formula .hi { color: var(--accent); }
-  .formula .op { color: var(--yellow); }
-
-  /* ── Two-row grid for slide 2 ── */
-  .slide-body-2x2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
-    gap: 20px;
-  }
-  .span2 { grid-column: 1 / -1; }
+  .formula .op { color: var(--amber); }
 </style>
 </head>
 <body>
@@ -288,6 +267,7 @@
   <button class="nav-btn inv" onclick="show('inv')">Stage 4 &nbsp; Investigation</button>
   <button class="nav-btn jud" onclick="show('jud')">Stage 5 &nbsp; Judgement</button>
 </nav>
+
 
 <!-- ══════════════════════════════════════════════════════════
      SLIDE 1 — INGESTION
@@ -369,10 +349,9 @@
         <div class="feature">
           <div class="feature-title">Article body preserved for writing quality</div>
           <div class="feature-desc">
-            The full English body is stored on <code>content.body</code> and passed to the
-            Judgement stage, where Claude independently assesses writing style signals
-            (sensationalism, anonymous sources, emotional language) as supplementary
-            credibility context — separate from the factual claim analysis.
+            The full English body is passed to Judgement, where Claude independently assesses
+            writing style signals (sensationalism, anonymous sources, emotional language) as
+            supplementary credibility context — separate from the factual claim analysis.
           </div>
         </div>
 
@@ -401,9 +380,9 @@
     </div>
   </div>
 
-  <div class="slide-body-2x2">
+  <div class="slide-body">
 
-    <!-- Top-left: agents -->
+    <!-- Left: parallel agents -->
     <div class="card">
       <div class="card-title">Parallel agents</div>
       <div class="fn-list">
@@ -431,7 +410,7 @@
           </div>
           <div class="fn-text">
             <strong>Statistics agent</strong>
-            <span>Extracts cited figures and checks them against authoritative data sources to flag numbers that appear inaccurate or out of context.</span>
+            <span>Extracts cited figures and checks them against authoritative data sources to flag numbers that are inaccurate or out of context.</span>
           </div>
         </div>
         <div class="fn-item">
@@ -440,64 +419,41 @@
           </div>
           <div class="fn-text">
             <strong>Source checker</strong>
-            <span>Researches the publisher's and author's track record. Produces a 0–100 credibility score, political bias label, and known-issue list.</span>
+            <span>Researches the publisher's track record. Produces a 0–100 credibility score, political bias label, and known-issue list.</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Top-right: citation chasing -->
+    <!-- Right: distinctive features -->
     <div class="card">
-      <div class="card-title">Citation-chasing evidence tiers</div>
-      <div class="features">
-        <div class="feature">
-          <div class="feature-title">Primary — kept as strong evidence</div>
-          <div class="feature-desc">Source provides its own original data, analysis, or official statement. Weight multiplier: <strong style="color:var(--accent)">1.2×</strong></div>
-        </div>
-        <div class="feature">
-          <div class="feature-title">Secondary with citation — followed</div>
-          <div class="feature-desc">Source relays a claim and links to a specific URL. The agent follows the link and reclassifies the target — up to <strong style="color:var(--accent)">MAX_HOP_DEPTH = 2</strong> hops. Weight multiplier: <strong style="color:var(--accent)">0.8×</strong>, with an additional <strong style="color:var(--accent)">0.9× decay per hop</strong>.</div>
-        </div>
-        <div class="feature">
-          <div class="feature-title">Mention-only — discarded</div>
-          <div class="feature-desc">Source references a claim without any citation trail. Carrying no traceable evidence, it is dropped entirely rather than contributing noise.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom: full-width distinctive features -->
-    <div class="card span2">
       <div class="card-title">Distinctive features</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <div class="features">
+
+        <div class="feature">
+          <div class="feature-title">Citation chasing to primary sources</div>
+          <div class="feature-desc">
+            Each Tavily result is classified into a tier. <strong style="color:var(--text)">Primary</strong> sources (own data or official statement, 1.2× weight) are kept.
+            <strong style="color:var(--text)">Secondary</strong> sources that cite a URL are followed up to 2 hops (0.8× × 0.9 per hop).
+            <strong style="color:var(--text)">Mention-only</strong> sources with no citation trail are discarded — preventing noise from inflating the score.
+          </div>
+        </div>
 
         <div class="feature">
           <div class="feature-title">Binary file extraction</div>
           <div class="feature-desc">
-            PDF, CSV, and Excel URLs are detected by path extension and downloaded via
-            <code>httpx</code>, then parsed with <code>pypdf</code> / stdlib <code>csv</code>
-            / <code>openpyxl</code>. Statistical reports and government data sheets are
-            readable as evidence — not just HTML pages.
+            PDF, CSV, and Excel source URLs are downloaded directly via <code>httpx</code>
+            and parsed before classification. Statistical reports and government data sheets
+            become readable evidence — not just HTML pages.
           </div>
         </div>
 
         <div class="feature">
-          <div class="feature-title">Deduplication + retry</div>
+          <div class="feature-title">Deduplication + smart retry</div>
           <div class="feature-desc">
-            Sources are fingerprinted by the first 300 characters of extracted text to
-            catch syndicated copies. If unique sources fall below
-            <code>MIN_SOURCES_PER_CLAIM</code>, Claude generates a rephrased query and
-            retries Tavily up to <code>MAX_SEARCH_RETRIES</code> times — maximising
-            evidence coverage per claim.
-          </div>
-        </div>
-
-        <div class="feature">
-          <div class="feature-title">Source independence tracking</div>
-          <div class="feature-desc">
-            Each source is flagged <code>is_independent</code> when it is editorially
-            independent of the original publisher. Non-independent corroboration
-            (e.g. the same outlet's sister publication) is surfaced in the evidence
-            trail, preventing self-referential validation from inflating the score.
+            Sources are fingerprinted to discard syndicated copies. If unique sources fall
+            below the minimum, Claude generates a rephrased query and retries Tavily — maximising
+            independent evidence coverage per claim.
           </div>
         </div>
 
@@ -530,7 +486,7 @@
 
     <!-- Left: scoring chain -->
     <div class="card">
-      <div class="card-title">Scoring chain (per claim)</div>
+      <div class="card-title">Scoring chain</div>
       <div class="flow">
         <div class="flow-step">
           <div class="flow-num">1</div>
@@ -543,26 +499,19 @@
           <div class="flow-num">2</div>
           <div class="flow-content">
             <strong>Weighted source scoring</strong>
-            <span>Each relevant source contributes a signed value:</span>
+            <span>Each relevant source contributes a signed, quality-adjusted value. The net count of supporting vs. contradicting sources applies a confidence multiplier (0.6× to 1.4×).</span>
             <div class="formula">
-base_weight <span class="op">×</span> direction <span class="op">×</span> <span class="hi">quality_multiplier</span> <span class="op">×</span> <span class="hi">hop_decay</span>
+base_weight <span class="op">×</span> direction <span class="op">×</span> <span class="hi">quality</span> <span class="op">×</span> <span class="hi">hop_decay</span> <span class="op">×</span> <span class="hi">net_multiplier</span>
             </div>
           </div>
         </div>
         <div class="flow-step">
           <div class="flow-num">3</div>
           <div class="flow-content">
-            <strong>Net confidence multiplier</strong>
-            <span>Adjusts the normalised score by how many independent sources agree vs. disagree — from 0.6× (contradicting majority) to 1.4× (5+ corroborating).</span>
-          </div>
-        </div>
-        <div class="flow-step">
-          <div class="flow-num">4</div>
-          <div class="flow-content">
             <strong>Final blend</strong>
-            <span>Claim scores are averaged, then blended with publisher credibility and penalised if AI-generated content is detected.</span>
+            <span>Claim scores are averaged, blended with publisher credibility (70/30), and penalised if AI-generated content is detected.</span>
             <div class="formula">
-<span class="hi">claims</span> <span class="op">× 0.7</span>  <span class="op">+</span>  <span class="hi">publisher</span> <span class="op">× 0.3</span>
+<span class="hi">claims</span> <span class="op">× 0.7  +</span>  <span class="hi">publisher</span> <span class="op">× 0.3</span>
 <span class="op">[× 0.8</span>  if fakeness_score <span class="op">&gt;</span> 60<span class="op">]</span>
             </div>
           </div>
@@ -579,11 +528,9 @@ base_weight <span class="op">×</span> direction <span class="op">×</span> <spa
           <div class="feature-title">Inconclusive vs. Unverified — semantically distinct</div>
           <div class="feature-desc">
             Most systems collapse these into one label. FactGuard separates them:
-            <em style="color:var(--text)">Inconclusive</em> means sources were found but their
-            evidence is balanced or conflicting (score 45–59). <em style="color:var(--text)">
-            Unverified</em> means no usable evidence was found at all
-            (<code>max_possible_sum = 0</code>, score forced to neutral 50). The reader
-            knows whether the system looked and was uncertain, or simply could not look.
+            <em style="color:var(--text)">Inconclusive</em> — sources found but evidence is balanced or conflicting (score 45–59).
+            <em style="color:var(--text)">Unverified</em> — no usable evidence found at all (score forced to neutral 50).
+            The reader knows whether the system looked and was uncertain, or simply could not look.
           </div>
         </div>
 
@@ -591,40 +538,22 @@ base_weight <span class="op">×</span> direction <span class="op">×</span> <spa
           <div class="feature-title">Government-source-only flag + boost</div>
           <div class="feature-desc">
             When all corroborating sources for a claim are government-owned, a 1.1×
-            credibility boost is applied (official sources carry authority), but
-            <code>government_source_only_flag</code> is also surfaced in the UI — prompting
-            the reader to seek independent verification where official sources may have a
-            conflict of interest.
+            credibility boost is applied — but <code>government_source_only_flag</code> is
+            also surfaced in the UI, prompting the reader to seek independent verification
+            where official sources may have a conflict of interest.
           </div>
         </div>
 
         <div class="feature">
           <div class="feature-title">Conflict detection</div>
           <div class="feature-desc">
-            When the evidence-based claim score and the publisher credibility score diverge
-            by 40+ points, <code>is_conflicted = true</code> is set and a note is written
-            into the summary. This catches the two hardest cases: a known-bad outlet
-            publishing genuinely accurate claims, and a credible outlet running a
-            poorly-evidenced story.
+            When claim evidence score and publisher credibility score diverge by 40+ points,
+            <code>is_conflicted = true</code> is flagged. This catches a known-bad outlet
+            publishing accurate claims, or a credible outlet running a poorly-evidenced story.
           </div>
         </div>
 
       </div>
-
-      <!-- Verdict chips -->
-      <div style="margin-top:18px">
-        <div class="card-title">Claim verdict scale</div>
-        <div class="verdict-grid">
-          <div class="verdict-chip v-true"><span class="dot" style="background:#3fb950"></span>True &nbsp;<small style="font-weight:400;opacity:.7">80–100</small></div>
-          <div class="verdict-chip v-mostly-true"><span class="dot" style="background:#85d996"></span>Mostly True &nbsp;<small style="font-weight:400;opacity:.7">60–79</small></div>
-          <div class="verdict-chip v-misleading"><span class="dot" style="background:#d29922"></span>Misleading &nbsp;<small style="font-weight:400;opacity:.7">30–44</small></div>
-          <div class="verdict-chip v-inconclusive"><span class="dot" style="background:#8b949e"></span>Inconclusive &nbsp;<small style="font-weight:400;opacity:.7">45–59</small></div>
-          <div class="verdict-chip v-unverified"><span class="dot" style="background:#bc8cff"></span>Unverified &nbsp;<small style="font-weight:400;opacity:.7">no evidence</small></div>
-          <div class="verdict-chip v-mostly-false"><span class="dot" style="background:#e3722e"></span>Mostly False &nbsp;<small style="font-weight:400;opacity:.7">15–29</small></div>
-          <div class="verdict-chip v-false"><span class="dot" style="background:#f85149"></span>False &nbsp;<small style="font-weight:400;opacity:.7">0–14</small></div>
-        </div>
-      </div>
-
     </div>
 
   </div>
