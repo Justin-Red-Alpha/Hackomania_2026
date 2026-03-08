@@ -385,6 +385,7 @@ async def extract(
         section=meta.get("section"),
         is_opinion=bool(meta.get("is_opinion", False)),
         original_language=language,
+        body=english_text,
     )
 
     token_count = _approximate_token_count(english_text)
