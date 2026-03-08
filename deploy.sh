@@ -35,36 +35,74 @@ fi
 
 ACCOUNT_ID="${AWS_ACCOUNT_ID}"
 REGION="${AWS_REGION}"
-REPO="factguard"
-CLUSTER="factguard"
+REPO="justin-hackomania2026-factguard"
+CLUSTER="default"
 SERVICE="factguard"
 IMAGE_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${REPO}:latest"
-TASK_DEF_FILE="ecs-task-definition.json"
+
+# Load .env for secrets
+set -o allexport
+# shellcheck source=.env
+source "$(dirname "$0")/.env"
+set +o allexport
 
 echo "==> Authenticating Docker with ECR"
 aws ecr get-login-password --region "${REGION}" \
   | docker login --username AWS --password-stdin \
       "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 
-echo "==> Building Docker image"
+echo "==> Building and pushing Docker image"
 docker build -t "${REPO}:latest" .
-
-echo "==> Tagging and pushing to ECR"
 docker tag "${REPO}:latest" "${IMAGE_URI}"
 docker push "${IMAGE_URI}"
 
-echo "==> Patching task definition with account/region"
-PATCHED=$(sed \
-  -e "s/ACCOUNT_ID/${ACCOUNT_ID}/g" \
-  -e "s/REGION/${REGION}/g" \
-  "${TASK_DEF_FILE}")
-
 echo "==> Registering task definition"
-TASK_ARN=$(echo "${PATCHED}" \
-  | aws ecs register-task-definition \
-      --cli-input-json file:///dev/stdin \
-      --query "taskDefinition.taskDefinitionArn" \
-      --output text)
+TASK_ARN=$(MSYS_NO_PATHCONV=1 aws ecs register-task-definition \
+  --family factguard \
+  --network-mode awsvpc \
+  --requires-compatibilities FARGATE \
+  --cpu 512 \
+  --memory 1024 \
+  --execution-role-arn "arn:aws:iam::${ACCOUNT_ID}:role/service-role/ecsTaskExecutionRole" \
+  --container-definitions "[
+    {
+      \"name\": \"factguard\",
+      \"image\": \"${IMAGE_URI}\",
+      \"essential\": true,
+      \"portMappings\": [{\"containerPort\": 8000, \"protocol\": \"tcp\"}],
+      \"environment\": [
+        {\"name\": \"ANTHROPIC_API_KEY\",      \"value\": \"${ANTHROPIC_API_KEY}\"},
+        {\"name\": \"TAVILY_API_KEY\",          \"value\": \"${TAVILY_API_KEY}\"},
+        {\"name\": \"AWS_ACCESS_KEY_ID\",       \"value\": \"${AWS_ACCESS_KEY_ID}\"},
+        {\"name\": \"AWS_SECRET_ACCESS_KEY\",   \"value\": \"${AWS_SECRET_ACCESS_KEY}\"},
+        {\"name\": \"S3_BUCKET_NAME\",          \"value\": \"${S3_BUCKET_NAME}\"},
+        {\"name\": \"S3_REGION\",               \"value\": \"${S3_REGION}\"},
+        {\"name\": \"CLICKHOUSE_HOST\",         \"value\": \"${CLICKHOUSE_HOST}\"},
+        {\"name\": \"CLICKHOUSE_PORT\",         \"value\": \"${CLICKHOUSE_PORT}\"},
+        {\"name\": \"CLICKHOUSE_USER\",         \"value\": \"${CLICKHOUSE_USER}\"},
+        {\"name\": \"CLICKHOUSE_PASSWORD\",     \"value\": \"${CLICKHOUSE_PASSWORD}\"},
+        {\"name\": \"DATA_GOV_API_KEY\",        \"value\": \"${DATA_GOV_API_KEY}\"}
+      ],
+      \"logConfiguration\": {
+        \"logDriver\": \"awslogs\",
+        \"options\": {
+          \"awslogs-group\": \"/ecs/factguard\",
+          \"awslogs-region\": \"${REGION}\",
+          \"awslogs-stream-prefix\": \"ecs\"
+        }
+      },
+      \"healthCheck\": {
+        \"command\": [\"CMD-SHELL\", \"curl -f http://localhost:8000/health || exit 1\"],
+        \"interval\": 30,
+        \"timeout\": 5,
+        \"retries\": 3,
+        \"startPeriod\": 15
+      }
+    }
+  ]" \
+  --region "${REGION}" \
+  --query "taskDefinition.taskDefinitionArn" \
+  --output text)
 echo "    Task definition: ${TASK_ARN}"
 
 echo "==> Updating ECS service"
@@ -79,3 +117,4 @@ aws ecs update-service \
 
 echo "==> Deploy triggered. Monitor with:"
 echo "    aws ecs describe-services --cluster ${CLUSTER} --services ${SERVICE} --region ${REGION}"
+echo "    MSYS_NO_PATHCONV=1 aws logs tail /ecs/factguard --follow --region ${REGION}"

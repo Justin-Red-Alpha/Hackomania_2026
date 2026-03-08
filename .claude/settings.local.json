@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pip install -r requirements.txt)"
+      "Bash(pip install -r requirements.txt)",
+      "Bash(aws ec2 describe-subnets --subnet-ids subnet-07dba1c08f0581518 --query \"Subnets[0].VpcId\" --output text --region ap-southeast-1)",
+      "Bash(aws iam get-role --role-name ecsTaskExecutionRole --query \"Role.Arn\" --output text)",
+      "Bash(aws logs create-log-group --log-group-name \"/ecs/factguard\" --region ap-southeast-1)"
     ]
   }
 }
